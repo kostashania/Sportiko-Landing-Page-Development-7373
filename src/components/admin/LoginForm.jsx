@@ -8,7 +8,10 @@ const { FiArrowLeft, FiEye, FiEyeOff, FiMail, FiLock } = FiIcons;
 
 const LoginForm = () => {
   const { signIn, resetPassword, error } = useAuth();
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
+  const [loginData, setLoginData] = useState({
+    email: '',
+    password: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -18,26 +21,20 @@ const LoginForm = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
     const { error } = await signIn(loginData.email, loginData.password);
-    
     if (error) {
       console.error('Login error:', error);
     }
-    
     setLoading(false);
   };
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
     const { error } = await resetPassword(forgotEmail);
-    
     if (!error) {
       setResetSent(true);
     }
-    
     setLoading(false);
   };
 
@@ -53,27 +50,28 @@ const LoginForm = () => {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Επαναφορά Κωδικού</h1>
             <p className="text-gray-600">
-              {resetSent 
+              {resetSent
                 ? 'Έχει σταλεί email επαναφοράς στη διεύθυνσή σας'
-                : 'Εισάγετε το email σας για επαναφορά κωδικού'
-              }
+                : 'Εισάγετε το email σας για επαναφορά κωδικού'}
             </p>
           </div>
 
           {!resetSent ? (
             <form onSubmit={handleForgotPassword} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email
                 </label>
                 <div className="relative">
                   <SafeIcon icon={FiMail} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
+                    id="forgot-email"
                     type="email"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="admin@sportiko.eu"
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -133,40 +131,45 @@ const LoginForm = () => {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-2">
               Email
             </label>
             <div className="relative">
               <SafeIcon icon={FiMail} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
+                id="login-email"
                 type="email"
                 value={loginData.email}
                 onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="admin@sportiko.eu"
+                autoComplete="email"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 mb-2">
               Κωδικός Πρόσβασης
             </label>
             <div className="relative">
               <SafeIcon icon={FiLock} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
+                id="login-password"
                 type={showPassword ? 'text' : 'password'}
                 value={loginData.password}
                 onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                 className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="••••••••"
+                autoComplete="current-password"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label={showPassword ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'}
               >
                 <SafeIcon icon={showPassword ? FiEyeOff : FiEye} className="w-5 h-5" />
               </button>

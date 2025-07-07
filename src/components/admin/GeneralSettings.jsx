@@ -34,31 +34,33 @@ const GeneralSettings = ({ settings, updateSetting }) => {
             <SafeIcon icon={FiGlobe} className="w-6 h-6 text-blue-600" />
             <h3 className="text-lg font-semibold text-gray-900">Πληροφορίες Ιστοσελίδας</h3>
           </div>
-          
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="site-name" className="block text-sm font-medium text-gray-700 mb-2">
                 Όνομα Ιστοσελίδας
               </label>
               <input
+                id="site-name"
                 type="text"
                 value={localSettings.siteName}
                 onChange={(e) => handleChange('siteName', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Sportiko.eu"
+                autoComplete="organization"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="app-url" className="block text-sm font-medium text-gray-700 mb-2">
                 URL Εφαρμογής
               </label>
               <input
+                id="app-url"
                 type="url"
                 value={localSettings.appUrl}
                 onChange={(e) => handleChange('appUrl', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="https://spiffy-nougat-80a628.netlify.app"
+                autoComplete="url"
               />
             </div>
           </div>
@@ -70,21 +72,21 @@ const GeneralSettings = ({ settings, updateSetting }) => {
             <SafeIcon icon={FiServer} className="w-6 h-6 text-green-600" />
             <h3 className="text-lg font-semibold text-gray-900">Ρυθμίσεις Βάσης Δεδομένων</h3>
           </div>
-          
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="project-id" className="block text-sm font-medium text-gray-700 mb-2">
                 Supabase Project ID
               </label>
               <input
+                id="project-id"
                 type="text"
                 value={localSettings.projectId}
                 onChange={(e) => handleChange('projectId', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="bjelydvroavsqczejpgd"
+                autoComplete="off"
               />
             </div>
-
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <SafeIcon icon={FiLink} className="w-5 h-5 text-blue-600" />
@@ -103,39 +105,47 @@ const GeneralSettings = ({ settings, updateSetting }) => {
             <SafeIcon icon={FiShield} className="w-6 h-6 text-red-600" />
             <h3 className="text-lg font-semibold text-gray-900">Google reCAPTCHA</h3>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="recaptcha-site-key" className="block text-sm font-medium text-gray-700 mb-2">
                 Site Key (Δημόσιο Κλειδί)
               </label>
               <input
+                id="recaptcha-site-key"
                 type="text"
                 value={localSettings.googleRecaptchaSiteKey}
                 onChange={(e) => handleChange('googleRecaptchaSiteKey', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="6LcXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                autoComplete="off"
               />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="recaptcha-secret-key" className="block text-sm font-medium text-gray-700 mb-2">
                 Secret Key (Μυστικό Κλειδί)
               </label>
               <input
+                id="recaptcha-secret-key"
                 type="password"
                 value={localSettings.googleRecaptchaSecretKey}
                 onChange={(e) => handleChange('googleRecaptchaSecretKey', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="6LcXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                autoComplete="new-password"
               />
             </div>
           </div>
-
           <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
             <p className="text-sm text-yellow-800">
-              <strong>Οδηγίες:</strong> Για να ενεργοποιήσετε το Google reCAPTCHA, 
-              επισκεφτείτε το <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google reCAPTCHA Admin Console</a> 
+              <strong>Οδηγίες:</strong> Για να ενεργοποιήσετε το Google reCAPTCHA, επισκεφτείτε το{' '}
+              <a
+                href="https://www.google.com/recaptcha/admin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                Google reCAPTCHA Admin Console
+              </a>{' '}
               και δημιουργήστε ένα νέο site.
             </p>
           </div>

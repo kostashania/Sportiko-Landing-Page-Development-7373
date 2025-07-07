@@ -15,37 +15,21 @@ import SEOSettings from './SEOSettings';
 import IntegrationsSettings from './IntegrationsSettings';
 import LanguageSettings from './LanguageSettings';
 
-const {
-  FiSave,
-  FiArrowLeft,
-  FiEye,
-  FiEdit3,
-  FiPalette,
-  FiType,
-  FiImage,
-  FiLink,
-  FiSettings,
-  FiUser,
-  FiSearch,
-  FiZap,
-  FiLayers,
-  FiShield,
-  FiBarChart3,
-  FiGlobe
-} = FiIcons;
+const { FiSave, FiArrowLeft, FiEye, FiEdit3, FiPalette, FiType, FiImage, FiLink, FiSettings, FiUser, FiSearch, FiZap, FiLayers, FiShield, FiBarChart3, FiGlobe } = FiIcons;
 
 const AdminPanel = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { settings, updateSetting, loading: settingsLoading, loadSettings } = useSettings();
   const [activeTab, setActiveTab] = useState('general');
   const [saveStatus, setSaveStatus] = useState('');
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
-  // Load settings when admin panel mounts
+  // Load settings only once when user is authenticated
   useEffect(() => {
-    if (user) {
-      loadSettings();
+    if (user && !settingsLoaded && !settingsLoading) {
+      loadSettings().finally(() => setSettingsLoaded(true));
     }
-  }, [user, loadSettings]);
+  }, [user, settingsLoaded, settingsLoading, loadSettings]);
 
   if (authLoading) {
     return (
@@ -123,7 +107,7 @@ const AdminPanel = () => {
               <h1 className="text-2xl font-bold text-gray-900">Admin Panel - Sportiko</h1>
               <div className="flex gap-2">
                 <a
-                  href="/"
+                  href="#/"
                   className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
                 >
                   <SafeIcon icon={FiEye} className="w-4 h-4" />
@@ -177,7 +161,9 @@ const AdminPanel = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    activeTab === tab.id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                    activeTab === tab.id
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
                   <SafeIcon icon={tab.icon} className="w-5 h-5" />
@@ -189,7 +175,7 @@ const AdminPanel = () => {
 
           {/* Main Content */}
           <div className="flex-1 bg-white rounded-xl shadow-lg p-8">
-            {settingsLoading ? (
+            {settingsLoading && !settingsLoaded ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 <p className="text-gray-600">Φόρτωση ρυθμίσεων...</p>
