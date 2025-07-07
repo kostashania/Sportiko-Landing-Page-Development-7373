@@ -9,16 +9,20 @@ const { FiArrowRight, FiPlay, FiSettings } = FiIcons;
 
 const HeroSection = () => {
   const { t } = useLanguage();
-  
+
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 py-20">
       <div className="absolute top-4 right-4 flex gap-2">
         <LanguageSwitcher compact={true} />
-        <a href="#/admin" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors">
+        <a
+          href="#/admin"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+        >
           <SafeIcon icon={FiSettings} className="w-4 h-4" />
           Admin
         </a>
       </div>
+
       <div className="max-w-6xl mx-auto text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -33,6 +37,7 @@ const HeroSection = () => {
             {t('hero.subtitle')}
           </p>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -53,6 +58,7 @@ const HeroSection = () => {
             <SafeIcon icon={FiPlay} className="w-5 h-5" />
           </button>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}

@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth } from '../hooks/useAuth';
-import { useSettings } from '../hooks/useSettings';
-import SafeIcon from '../common/SafeIcon';
+import { useAuth } from '../../hooks/useAuth';
+import { useSettings } from '../../hooks/useSettings';
+import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
-import LoginForm from './admin/LoginForm';
-import GeneralSettings from './admin/GeneralSettings';
-import DesignSettings from './admin/DesignSettings';
-import ContentSettings from './admin/ContentSettings';
-import SectionSettings from './admin/SectionSettings';
-import MediaLibrary from './admin/MediaLibrary';
-import UserProfile from './admin/UserProfile';
-import SEOSettings from './admin/SEOSettings';
-import IntegrationsSettings from './admin/IntegrationsSettings';
-import LanguageSettings from './admin/LanguageSettings';
+import LoginForm from './LoginForm';
+import GeneralSettings from './GeneralSettings';
+import DesignSettings from './DesignSettings';
+import ContentSettings from './ContentSettings';
+import SectionSettings from './SectionSettings';
+import MediaLibrary from './MediaLibrary';
+import UserProfile from './UserProfile';
+import SEOSettings from './SEOSettings';
+import IntegrationsSettings from './IntegrationsSettings';
+import LanguageSettings from './LanguageSettings';
 
 const {
   FiSave,
@@ -36,11 +36,18 @@ const {
 
 const AdminPanel = () => {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { settings, updateSetting, loading: settingsLoading } = useSettings();
+  const { settings, updateSetting, loading: settingsLoading, loadSettings } = useSettings();
   const [activeTab, setActiveTab] = useState('general');
   const [saveStatus, setSaveStatus] = useState('');
 
-  if (authLoading || settingsLoading) {
+  // Load settings when admin panel mounts
+  useEffect(() => {
+    if (user) {
+      loadSettings();
+    }
+  }, [user, loadSettings]);
+
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -116,7 +123,7 @@ const AdminPanel = () => {
               <h1 className="text-2xl font-bold text-gray-900">Admin Panel - Sportiko</h1>
               <div className="flex gap-2">
                 <a
-                  href="#/"
+                  href="/"
                   className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
                 >
                   <SafeIcon icon={FiEye} className="w-4 h-4" />
@@ -182,7 +189,14 @@ const AdminPanel = () => {
 
           {/* Main Content */}
           <div className="flex-1 bg-white rounded-xl shadow-lg p-8">
-            {renderTabContent()}
+            {settingsLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Φόρτωση ρυθμίσεων...</p>
+              </div>
+            ) : (
+              renderTabContent()
+            )}
           </div>
         </div>
       </div>

@@ -5,17 +5,15 @@ export const useSettings = () => {
   const [settings, setSettings] = useState({});
   const [sections, setSections] = useState([]);
   const [mediaLibrary, setMediaLibrary] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false initially
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    loadSettings();
-    loadSections();
-    loadMediaLibrary();
-  }, []);
+  // Don't auto-load settings on mount to prevent blocking
+  // Settings will be loaded when specifically needed (admin panel)
 
   const loadSettings = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
@@ -24,7 +22,7 @@ export const useSettings = () => {
       if (error) throw error;
 
       const settingsObj = {};
-      data.forEach(setting => {
+      data?.forEach(setting => {
         if (!settingsObj[setting.category]) {
           settingsObj[setting.category] = {};
         }
@@ -46,6 +44,7 @@ export const useSettings = () => {
 
       setSettings(settingsObj);
     } catch (error) {
+      console.warn('Failed to load settings:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -60,8 +59,9 @@ export const useSettings = () => {
         .order('order_index', { ascending: true });
 
       if (error) throw error;
-      setSections(data);
+      setSections(data || []);
     } catch (error) {
+      console.warn('Failed to load sections:', error);
       setError(error.message);
     }
   };
@@ -74,8 +74,9 @@ export const useSettings = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setMediaLibrary(data);
+      setMediaLibrary(data || []);
     } catch (error) {
+      console.warn('Failed to load media library:', error);
       setError(error.message);
     }
   };

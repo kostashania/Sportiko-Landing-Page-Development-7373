@@ -7,40 +7,74 @@ export const useAuth = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
+    let mounted = true;
+    
+    // Get initial session with error handling
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (mounted) {
+          if (error) {
+            console.warn('Auth session error:', error);
+            setError(error.message);
+          }
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.warn('Auth initialization error:', error);
+        if (mounted) {
+          setError('Authentication not available');
+          setLoading(false);
+        }
       }
-    );
+    };
 
-    return () => subscription.unsubscribe();
+    getInitialSession();
+
+    // Listen for auth changes with error handling
+    let subscription;
+    try {
+      const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (mounted) {
+            setUser(session?.user ?? null);
+            setLoading(false);
+          }
+        }
+      );
+      subscription = authSubscription;
+    } catch (error) {
+      console.warn('Auth state change listener error:', error);
+    }
+
+    return () => {
+      mounted = false;
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const signIn = async (email, password) => {
     try {
       setError(null);
       setLoading(true);
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
-
       if (error) throw error;
-      
-      // Update last login
-      await supabase
-        .from('admin_users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('email', email);
+
+      // Update last login if database is available
+      try {
+        await supabase
+          .from('admin_users')
+          .update({ last_login: new Date().toISOString() })
+          .eq('email', email);
+      } catch (dbError) {
+        console.warn('Failed to update last login:', dbError);
+      }
 
       return { data, error: null };
     } catch (error) {
@@ -55,7 +89,6 @@ export const useAuth = () => {
     try {
       setError(null);
       setLoading(true);
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -65,17 +98,20 @@ export const useAuth = () => {
           }
         }
       });
-
       if (error) throw error;
 
-      // Insert into admin_users table
-      await supabase
-        .from('admin_users')
-        .insert([{
-          email,
-          full_name: fullName,
-          role: 'admin'
-        }]);
+      // Insert into admin_users table if database is available
+      try {
+        await supabase
+          .from('admin_users')
+          .insert([{
+            email,
+            full_name: fullName,
+            role: 'admin'
+          }]);
+      } catch (dbError) {
+        console.warn('Failed to create admin user record:', dbError);
+      }
 
       return { data, error: null };
     } catch (error) {

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import HeroSection from './sections/HeroSection';
 import IntroSection from './sections/IntroSection';
 import FeaturesSection from './sections/FeaturesSection';
