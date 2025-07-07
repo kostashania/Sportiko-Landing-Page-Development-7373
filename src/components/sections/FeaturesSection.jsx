@@ -2,53 +2,56 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { FiDollarSign, FiUsers, FiCheckCircle, FiBarChart3, FiLink } = FiIcons;
 
 const FeaturesSection = () => {
+  const { t, currentLanguage } = useLanguage();
+
   const features = [
     {
       icon: FiDollarSign,
-      title: "💰 Καταγραφή Εσόδων & Εξόδων",
+      title: t('features.income.title'),
       items: [
-        "Με κατηγορίες και επιμέρους στοιχεία",
-        "Επίσημες ή ανεπίσημες συναλλαγές",
-        "Πληρωμένες ή εκκρεμείς",
-        "Επισυνάψτε παραστατικά ή αποδείξεις"
+        t('features.income.item1'),
+        t('features.income.item2'),
+        t('features.income.item3'),
+        t('features.income.item4')
       ]
     },
     {
       icon: FiUsers,
-      title: "👥 Διαχωρισμός Ρόλων",
+      title: t('features.roles.title'),
       items: [
-        "Διοίκηση (διαχειρίζεται τα πάντα)",
-        "Ταμίας (εγκρίνει συναλλαγές)",
-        "Μέλος Δ.Σ. (καταχωρεί και παρακολουθεί)"
+        t('features.roles.item1'),
+        t('features.roles.item2'),
+        t('features.roles.item3')
       ]
     },
     {
       icon: FiCheckCircle,
-      title: "✅ Εγκρίσεις Συναλλαγών",
+      title: t('features.approvals.title'),
       items: [
-        "Πίνακας ταμία για έγκριση/απόρριψη",
-        "Ιστορικό ποιος υπέβαλε και ποιος ενέκρινε"
+        t('features.approvals.item1'),
+        t('features.approvals.item2')
       ]
     },
     {
       icon: FiBarChart3,
-      title: "📊 Αναφορές & Ισοζύγια",
+      title: t('features.reports.title'),
       items: [
-        "Ταμείο με πραγματικό υπόλοιπο",
-        "Μηνιαίες αναφορές εσόδων/εξόδων",
-        "Εξαγωγή σε Excel ή PDF"
+        t('features.reports.item1'),
+        t('features.reports.item2'),
+        t('features.reports.item3')
       ]
     },
     {
       icon: FiLink,
-      title: "🔗 Προσαρμοσμένα Κουμπιά & Συνδέσμοι",
+      title: t('features.customization.title'),
       items: [
-        "Φόρμες παρουσιών, προπονήσεων, αξιολογήσεων",
-        "Ανοίγουν εύκολα μέσα από το μενού \"Platform\""
+        t('features.customization.item1'),
+        t('features.customization.item2')
       ]
     }
   ];
@@ -64,7 +67,7 @@ const FeaturesSection = () => {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            🔧 Τι μπορείτε να κάνετε με το Sportiko:
+            {t('features.section.title')}
           </h2>
         </motion.div>
 
@@ -83,11 +86,9 @@ const FeaturesSection = () => {
                   <SafeIcon icon={feature.icon} className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
-              
               <h3 className="text-xl font-semibold text-gray-900 mb-4">
                 {feature.title}
               </h3>
-              
               <ul className="space-y-2">
                 {feature.items.map((item, itemIndex) => (
                   <li key={itemIndex} className="text-gray-600 flex items-start gap-2">

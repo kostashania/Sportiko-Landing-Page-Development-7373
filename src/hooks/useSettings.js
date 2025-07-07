@@ -28,7 +28,20 @@ export const useSettings = () => {
         if (!settingsObj[setting.category]) {
           settingsObj[setting.category] = {};
         }
-        settingsObj[setting.category][setting.key] = setting.value;
+        
+        // Handle nested JSON values
+        try {
+          if (typeof setting.value === 'string' && (
+            setting.value.startsWith('{') || 
+            setting.value.startsWith('[')
+          )) {
+            settingsObj[setting.category][setting.key] = JSON.parse(setting.value);
+          } else {
+            settingsObj[setting.category][setting.key] = setting.value;
+          }
+        } catch (e) {
+          settingsObj[setting.category][setting.key] = setting.value;
+        }
       });
 
       setSettings(settingsObj);
@@ -69,12 +82,67 @@ export const useSettings = () => {
 
   const updateSetting = async (category, key, value) => {
     try {
+      // For entire category updates (like translations)
+      if (key === null && typeof value === 'object') {
+        const promises = [];
+        
+        // First, delete all existing settings for this category
+        const { error: deleteError } = await supabase
+          .from('site_settings')
+          .delete()
+          .eq('category', category);
+          
+        if (deleteError) throw deleteError;
+        
+        // Insert all new settings
+        Object.entries(value).forEach(([nestedKey, nestedValue]) => {
+          if (typeof nestedValue === 'object') {
+            promises.push(
+              supabase
+                .from('site_settings')
+                .insert({
+                  category,
+                  key: nestedKey,
+                  value: JSON.stringify(nestedValue),
+                  updated_at: new Date().toISOString()
+                })
+            );
+          } else {
+            promises.push(
+              supabase
+                .from('site_settings')
+                .insert({
+                  category,
+                  key: nestedKey,
+                  value: nestedValue,
+                  updated_at: new Date().toISOString()
+                })
+            );
+          }
+        });
+        
+        await Promise.all(promises);
+        
+        setSettings(prev => ({
+          ...prev,
+          [category]: value
+        }));
+        
+        return { error: null };
+      }
+      
+      // For single setting updates
+      let valueToStore = value;
+      if (typeof value === 'object') {
+        valueToStore = JSON.stringify(value);
+      }
+      
       const { error } = await supabase
         .from('site_settings')
         .upsert({
           category,
           key,
-          value,
+          value: valueToStore,
           updated_at: new Date().toISOString()
         });
 
@@ -107,11 +175,9 @@ export const useSettings = () => {
 
       if (error) throw error;
 
-      setSections(prev => 
-        prev.map(section => 
-          section.id === sectionId 
-            ? { ...section, ...updates }
-            : section
+      setSections(prev =>
+        prev.map(section =>
+          section.id === sectionId ? { ...section, ...updates } : section
         )
       );
 
@@ -125,6 +191,7 @@ export const useSettings = () => {
   const uploadMedia = async (file, category = 'general') => {
     try {
       const fileName = `${Date.now()}-${file.name}`;
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('media')
         .upload(fileName, file);
@@ -140,8 +207,7 @@ export const useSettings = () => {
         .insert([{
           filename: file.name,
           url: publicUrl,
-          type: file.type.startsWith('image/') ? 'image' : 
-                file.type.startsWith('video/') ? 'video' : 'file',
+          type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file',
           category,
           size_bytes: file.size
         }]);
@@ -149,6 +215,7 @@ export const useSettings = () => {
       if (insertError) throw insertError;
 
       await loadMediaLibrary();
+
       return { url: publicUrl, error: null };
     } catch (error) {
       setError(error.message);

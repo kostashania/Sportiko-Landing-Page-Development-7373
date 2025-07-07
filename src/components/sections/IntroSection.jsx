@@ -1,7 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useLanguage } from '../../context/LanguageContext';
 
 const IntroSection = () => {
+  const { t } = useLanguage();
+  
   return (
     <section className="py-20 px-4 bg-white">
       <div className="max-w-4xl mx-auto text-center">
@@ -12,11 +15,10 @@ const IntroSection = () => {
           viewport={{ once: true }}
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">
-            💡 Εισαγωγική Παράγραφος
+            {t('intro.title')}
           </h2>
-          
           <p className="text-lg text-gray-700 leading-relaxed">
-            Το Sportiko είναι μια σύγχρονη εφαρμογή σχεδιασμένη για να καλύψει τις ανάγκες οικονομικής διαχείρισης κάθε είδους αθλητικού συλλόγου ή σωματείου. Είτε πρόκειται για ποδόσφαιρο, μπάσκετ, βόλεϊ, καράτε ή πολιτιστικό σύλλογο, το Sportiko σας προσφέρει ένα εύχρηστο και ασφαλές περιβάλλον για να οργανώνετε, να καταγράφετε και να ελέγχετε κάθε οικονομική κίνηση και εσωτερική διαδικασία.
+            {t('intro.text')}
           </p>
         </motion.div>
       </div>
