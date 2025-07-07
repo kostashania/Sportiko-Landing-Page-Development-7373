@@ -13,18 +13,49 @@ import MediaLibrary from './admin/MediaLibrary';
 import UserProfile from './admin/UserProfile';
 import SEOSettings from './admin/SEOSettings';
 import IntegrationsSettings from './admin/IntegrationsSettings';
+import LanguageSettings from './admin/LanguageSettings';
+import LogoSettings from './admin/LogoSettings';
+import HeroSettings from './admin/HeroSettings';
+import FeaturesManager from './admin/FeaturesManager';
+import DemoItemsManager from './admin/DemoItemsManager';
+import ContactManager from './admin/ContactManager';
 
 const { 
-  FiSave, FiArrowLeft, FiEye, FiEdit3, FiPalette, FiType, 
-  FiImage, FiLink, FiSettings, FiUser, FiSearch, FiZap,
-  FiLayers, FiShield, FiBarChart3
+  FiSave, FiArrowLeft, FiEye, FiEdit3, FiPalette, 
+  FiType, FiImage, FiLink, FiSettings, FiUser, 
+  FiSearch, FiZap, FiLayers, FiShield, FiBarChart3,
+  FiGlobe, FiLayout, FiCamera, FiPhone, FiCheck
 } = FiIcons;
 
 const AdminPanel = () => {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { settings, updateSetting, loading: settingsLoading } = useSettings();
+  const { 
+    settings, updateSetting, loading: settingsLoading,
+    loadSettings, loadFeatures, loadSections, loadBenefits,
+    loadDemoItems, loadContactInfo, loadMediaLibrary
+  } = useSettings();
   const [activeTab, setActiveTab] = useState('general');
   const [saveStatus, setSaveStatus] = useState('');
+
+  // Load all data when the component mounts
+  useEffect(() => {
+    const initialize = async () => {
+      if (user) {
+        await loadSettings();
+        await loadSections();
+        await loadFeatures();
+        await loadBenefits();
+        await loadDemoItems();
+        await loadContactInfo();
+        await loadMediaLibrary();
+      }
+    };
+    
+    initialize();
+  }, [
+    user, loadSettings, loadSections, loadFeatures, 
+    loadBenefits, loadDemoItems, loadContactInfo, loadMediaLibrary
+  ]);
 
   if (authLoading || settingsLoading) {
     return (
@@ -55,8 +86,14 @@ const AdminPanel = () => {
 
   const tabs = [
     { id: 'general', label: 'Γενικά', icon: FiEdit3 },
+    { id: 'logo', label: 'Λογότυπο', icon: FiImage },
+    { id: 'hero', label: 'Hero Section', icon: FiLayout },
+    { id: 'features', label: 'Εφαρμογές', icon: FiZap },
+    { id: 'demo', label: 'Demo / Εικόνες', icon: FiCamera },
+    { id: 'contact', label: 'Επικοινωνία', icon: FiPhone },
     { id: 'design', label: 'Σχεδιασμός', icon: FiPalette },
     { id: 'content', label: 'Περιεχόμενο', icon: FiType },
+    { id: 'language', label: 'Γλώσσες', icon: FiGlobe },
     { id: 'sections', label: 'Ενότητες', icon: FiLayers },
     { id: 'media', label: 'Μέσα', icon: FiImage },
     { id: 'seo', label: 'SEO', icon: FiSearch },
@@ -70,10 +107,22 @@ const AdminPanel = () => {
     switch (activeTab) {
       case 'general':
         return <GeneralSettings settings={settings} updateSetting={updateSetting} />;
+      case 'logo':
+        return <LogoSettings />;
+      case 'hero':
+        return <HeroSettings />;
+      case 'features':
+        return <FeaturesManager />;
+      case 'demo':
+        return <DemoItemsManager />;
+      case 'contact':
+        return <ContactManager />;
       case 'design':
         return <DesignSettings settings={settings} updateSetting={updateSetting} />;
       case 'content':
         return <ContentSettings settings={settings} updateSetting={updateSetting} />;
+      case 'language':
+        return <LanguageSettings />;
       case 'sections':
         return <SectionSettings />;
       case 'media':
@@ -98,10 +147,7 @@ const AdminPanel = () => {
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold text-gray-900">Admin Panel - Sportiko</h1>
               <div className="flex gap-2">
-                <a
-                  href="#/"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-                >
+                <a href="#/" className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
                   <SafeIcon icon={FiEye} className="w-4 h-4" />
                   Προβολή Σελίδας
                 </a>
@@ -112,17 +158,21 @@ const AdminPanel = () => {
                 onClick={handleSaveAll}
                 disabled={saveStatus === 'saving'}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  saveStatus === 'saved' 
-                    ? 'bg-green-600 text-white' 
+                  saveStatus === 'saved'
+                    ? 'bg-green-600 text-white'
                     : saveStatus === 'error'
                     ? 'bg-red-600 text-white'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
                 <SafeIcon icon={FiSave} className="w-4 h-4" />
-                {saveStatus === 'saving' ? 'Αποθήκευση...' : 
-                 saveStatus === 'saved' ? 'Αποθηκεύτηκε!' :
-                 saveStatus === 'error' ? 'Σφάλμα!' : 'Αποθήκευση'}
+                {saveStatus === 'saving'
+                  ? 'Αποθήκευση...'
+                  : saveStatus === 'saved'
+                  ? 'Αποθηκεύτηκε!'
+                  : saveStatus === 'error'
+                  ? 'Σφάλμα!'
+                  : 'Αποθήκευση'}
               </button>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <span>Συνδεδεμένος ως:</span>
@@ -138,7 +188,6 @@ const AdminPanel = () => {
           </div>
         </div>
       </div>
-
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex gap-8">
           {/* Sidebar */}
@@ -160,7 +209,6 @@ const AdminPanel = () => {
               ))}
             </nav>
           </div>
-
           {/* Main Content */}
           <div className="flex-1 bg-white rounded-xl shadow-lg p-8">
             {renderTabContent()}

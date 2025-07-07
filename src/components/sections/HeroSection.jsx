@@ -1,18 +1,64 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 import { useLanguage } from '../../context/LanguageContext';
+import { useSettings } from '../../hooks/useSettings';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 
 const { FiArrowRight, FiPlay, FiSettings } = FiIcons;
 
 const HeroSection = () => {
-  const { t } = useLanguage();
+  const { t, currentLanguage } = useLanguage();
+  const { settings } = useSettings();
+  const [heroData, setHeroData] = useState({
+    title: 'Η Πλατφόρμα που Εξελίσσει τον Αθλητικό σας Σύλλογο',
+    subtitle: 'Οργανώστε τα οικονομικά και τις ακαδημίες σας με εύχρηστες εφαρμογές που λειτουργούν κάτω από την ενιαία πλατφόρμα του Sportiko.',
+    ctaPrimary: 'Ανακαλύψτε τις Εφαρμογές',
+    ctaSecondary: 'Επικοινωνία',
+    ctaPrimaryUrl: '#features',
+    ctaSecondaryUrl: '#contact',
+    backgroundImage: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b',
+    logoUrl: '/logo_500x500.png',
+    logoAlt: 'Sportiko Logo'
+  });
+
+  // Update hero data from settings if available
+  useEffect(() => {
+    if (settings?.content) {
+      const content = settings.content;
+      setHeroData(prev => ({
+        ...prev,
+        title: content.hero_title || prev.title,
+        subtitle: content.hero_subtitle || prev.subtitle,
+        ctaPrimary: content.hero_cta_primary || prev.ctaPrimary,
+        ctaSecondary: content.hero_cta_secondary || prev.ctaSecondary,
+        ctaPrimaryUrl: content.hero_cta_primary_url || prev.ctaPrimaryUrl,
+        ctaSecondaryUrl: content.hero_cta_secondary_url || prev.ctaSecondaryUrl,
+        backgroundImage: content.hero_background_image || prev.backgroundImage
+      }));
+    }
+    
+    if (settings?.general) {
+      setHeroData(prev => ({
+        ...prev,
+        logoUrl: settings.general.logo_url || prev.logoUrl,
+        logoAlt: settings.general.logo_alt || prev.logoAlt
+      }));
+    }
+  }, [settings]);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 py-20">
-      <div className="absolute top-4 right-4 flex gap-2">
+      {/* Background Image with Overlay */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${heroData.backgroundImage})` }}
+      >
+        <div className="absolute inset-0 bg-black opacity-60"></div>
+      </div>
+      
+      <div className="absolute top-4 right-4 flex gap-2 z-10">
         <LanguageSwitcher compact={true} />
         <a
           href="#/admin"
@@ -22,22 +68,41 @@ const HeroSection = () => {
           Admin
         </a>
       </div>
-
-      <div className="max-w-6xl mx-auto text-center">
+      
+      <div className="max-w-6xl mx-auto text-center relative z-10">
+        {/* Logo */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="mb-8"
+        >
+          <img 
+            src={heroData.logoUrl} 
+            alt={heroData.logoAlt} 
+            className="h-24 md:h-32 mx-auto"
+            onError={(e) => {
+              e.target.src = 'https://via.placeholder.com/200x200?text=Sportiko';
+            }}
+          />
+        </motion.div>
+        
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           className="mb-8"
         >
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            {t('hero.title')}
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+            {currentLanguage.code === 'el' ? heroData.title : 'The Platform That Empowers Your Sports Club'}
           </h1>
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-4xl mx-auto">
-            {t('hero.subtitle')}
+          <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-4xl mx-auto">
+            {currentLanguage.code === 'el' ? 
+              heroData.subtitle : 
+              'Manage your club\'s finances and academies with user-friendly apps, all under one digital roof.'}
           </p>
         </motion.div>
-
+        
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -45,33 +110,19 @@ const HeroSection = () => {
           className="flex flex-col sm:flex-row gap-4 justify-center items-center"
         >
           <a
-            href="https://spiffy-nougat-80a628.netlify.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-green-600 text-white text-lg font-semibold rounded-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+            href={heroData.ctaPrimaryUrl}
+            className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
-            {t('hero.cta.primary')}
+            {currentLanguage.code === 'el' ? heroData.ctaPrimary : 'Explore the Apps'}
             <SafeIcon icon={FiArrowRight} className="w-5 h-5" />
           </a>
-          <button className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 shadow-lg">
-            {t('hero.cta.secondary')}
+          <a
+            href={heroData.ctaSecondaryUrl}
+            className="inline-flex items-center gap-2 px-8 py-4 bg-green-600 text-white text-lg font-semibold rounded-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+          >
+            {currentLanguage.code === 'el' ? heroData.ctaSecondary : 'Contact'}
             <SafeIcon icon={FiPlay} className="w-5 h-5" />
-          </button>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="mt-16"
-        >
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl mx-auto">
-            <img
-              src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
-              alt="Sportiko Platform Preview"
-              className="w-full h-64 object-cover rounded-lg"
-            />
-          </div>
+          </a>
         </motion.div>
       </div>
     </section>
