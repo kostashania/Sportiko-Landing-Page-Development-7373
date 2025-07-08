@@ -19,9 +19,20 @@ const HeroSection = () => {
     ctaPrimaryUrl: '#features',
     ctaSecondaryUrl: '#contact',
     backgroundImage: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b',
-    logoUrl: '/logo_500x500.png',
+    logoUrl: '/logo.svg',
     logoAlt: 'Sportiko Logo'
   });
+
+  // Create fallback logo
+  const fallbackLogo = "data:image/svg+xml;base64," + btoa(`
+    <svg width="200" height="80" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="200" height="80" rx="8" fill="#2563eb"/>
+      <text x="100" y="35" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">Sportiko</text>
+      <text x="100" y="55" font-family="Arial, sans-serif" font-size="12" fill="#93c5fd" text-anchor="middle">Sports Management</text>
+      <circle cx="25" cy="25" r="8" fill="white" opacity="0.8"/>
+      <circle cx="175" cy="55" r="6" fill="white" opacity="0.6"/>
+    </svg>
+  `);
 
   // Update hero data from settings if available
   useEffect(() => {
@@ -38,7 +49,7 @@ const HeroSection = () => {
         backgroundImage: content.hero_background_image || prev.backgroundImage
       }));
     }
-    
+
     if (settings?.general) {
       setHeroData(prev => ({
         ...prev,
@@ -48,16 +59,20 @@ const HeroSection = () => {
     }
   }, [settings]);
 
+  const handleLogoError = (e) => {
+    e.target.src = fallbackLogo;
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 py-20">
       {/* Background Image with Overlay */}
-      <div 
+      <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url(${heroData.backgroundImage})` }}
       >
         <div className="absolute inset-0 bg-black opacity-60"></div>
       </div>
-      
+
       <div className="absolute top-4 right-4 flex gap-2 z-10">
         <LanguageSwitcher compact={true} />
         <a
@@ -68,25 +83,23 @@ const HeroSection = () => {
           Admin
         </a>
       </div>
-      
+
       <div className="max-w-6xl mx-auto text-center relative z-10">
         {/* Logo */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           className="mb-8"
         >
-          <img 
-            src={heroData.logoUrl} 
-            alt={heroData.logoAlt} 
+          <img
+            src={heroData.logoUrl}
+            alt={heroData.logoAlt}
             className="h-24 md:h-32 mx-auto"
-            onError={(e) => {
-              e.target.src = 'https://via.placeholder.com/200x200?text=Sportiko';
-            }}
+            onError={handleLogoError}
           />
         </motion.div>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -94,15 +107,17 @@ const HeroSection = () => {
           className="mb-8"
         >
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-            {currentLanguage.code === 'el' ? heroData.title : 'The Platform That Empowers Your Sports Club'}
+            {currentLanguage.code === 'el' 
+              ? heroData.title 
+              : 'The Platform That Empowers Your Sports Club'}
           </h1>
           <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-4xl mx-auto">
-            {currentLanguage.code === 'el' ? 
-              heroData.subtitle : 
-              'Manage your club\'s finances and academies with user-friendly apps, all under one digital roof.'}
+            {currentLanguage.code === 'el' 
+              ? heroData.subtitle 
+              : 'Manage your club\'s finances and academies with user-friendly apps, all under one digital roof.'}
           </p>
         </motion.div>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
