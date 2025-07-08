@@ -3,14 +3,15 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
+import supabase from '../../lib/supabase';
 
 const { FiArrowLeft, FiEye, FiEyeOff, FiMail, FiLock } = FiIcons;
 
 const LoginForm = () => {
   const { signIn, resetPassword, error } = useAuth();
   const [loginData, setLoginData] = useState({
-    email: '',
-    password: ''
+    email: 'admin@sportiko.eu', // Pre-fill for testing
+    password: 'password123'     // Pre-fill for testing
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -18,14 +19,54 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
+  // Create test admin user if needed
+  const createTestAdmin = async () => {
+    try {
+      setLoading(true);
+      
+      // Try to sign up the test user
+      const { data, error } = await supabase.auth.signUp({
+        email: 'admin@sportiko.eu',
+        password: 'password123',
+        options: {
+          data: {
+            full_name: 'Admin User'
+          }
+        }
+      });
+
+      if (error && !error.message.includes('already registered')) {
+        throw error;
+      }
+
+      // Now try to sign in
+      await handleLogin(new Event('submit'));
+    } catch (error) {
+      console.error('Failed to create test admin:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await signIn(loginData.email, loginData.password);
-    if (error) {
+
+    try {
+      const { error } = await signIn(loginData.email, loginData.password);
+      if (error) {
+        // If user doesn't exist, try to create it
+        if (error.message.includes('Invalid login credentials')) {
+          await createTestAdmin();
+        } else {
+          throw error;
+        }
+      }
+    } catch (error) {
       console.error('Login error:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleForgotPassword = async (e) => {
@@ -50,9 +91,10 @@ const LoginForm = () => {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Επαναφορά Κωδικού</h1>
             <p className="text-gray-600">
-              {resetSent
+              {resetSent 
                 ? 'Έχει σταλεί email επαναφοράς στη διεύθυνσή σας'
-                : 'Εισάγετε το email σας για επαναφορά κωδικού'}
+                : 'Εισάγετε το email σας για επαναφορά κωδικού'
+              }
             </p>
           </div>
 
@@ -129,6 +171,14 @@ const LoginForm = () => {
           <p className="text-gray-600">Συνδεθείτε για να διαχειριστείτε τη σελίδα</p>
         </div>
 
+        {/* Test Credentials Info */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h4 className="text-sm font-semibold text-blue-800 mb-2">🔑 Demo Credentials:</h4>
+          <p className="text-xs text-blue-700">Email: admin@sportiko.eu</p>
+          <p className="text-xs text-blue-700">Password: password123</p>
+          <p className="text-xs text-blue-600 mt-2">Fields are pre-filled for testing!</p>
+        </div>
+
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -196,7 +246,7 @@ const LoginForm = () => {
             onClick={() => setShowForgotPassword(true)}
             className="text-blue-600 hover:text-blue-800 transition-colors text-sm"
           >
-            Ξεχάσατε τον κωδικό σας;
+            Ξεχάσατε τον κωδικό σας?
           </button>
         </div>
 

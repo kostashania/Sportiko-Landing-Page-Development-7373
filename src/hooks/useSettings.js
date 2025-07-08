@@ -12,11 +12,8 @@ export const useSettings = () => {
   const [mediaLibrary, setMediaLibrary] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [pendingUpdates, setPendingUpdates] = useState(new Set());
 
   const loadSettings = useCallback(async () => {
-    if (loading) return; // Prevent multiple simultaneous calls
-
     try {
       setLoading(true);
       setError(null);
@@ -26,7 +23,10 @@ export const useSettings = () => {
         .select('*')
         .order('category', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Settings load error:', error);
+        throw error;
+      }
 
       const settingsObj = {};
       data?.forEach(setting => {
@@ -49,37 +49,14 @@ export const useSettings = () => {
       });
 
       setSettings(settingsObj);
+      console.log('Settings loaded:', settingsObj);
     } catch (error) {
-      console.warn('Failed to load settings:', error);
+      console.error('Failed to load settings:', error);
       setError(error.message);
-      // Set default settings on error
-      setSettings({
-        general: {
-          site_name: 'Sportiko.eu',
-          project_id: 'bjelydvroavsqczejpgd',
-          app_url: 'https://spiffy-nougat-80a628.netlify.app',
-          logo_url: '/logo.svg',
-          logo_alt: 'Sportiko Logo'
-        },
-        content: {
-          hero_title: 'Η Πλατφόρμα που Εξελίσσει τον Αθλητικό σας Σύλλογο',
-          hero_subtitle: 'Οργανώστε τα οικονομικά και τις ακαδημίες σας με εύχρηστες εφαρμογές που λειτουργούν κάτω από την ενιαία πλατφόρμα του Sportiko.',
-          hero_cta_primary: 'Ανακαλύψτε τις Εφαρμογές',
-          hero_cta_secondary: 'Επικοινωνία',
-          hero_cta_primary_url: '#features',
-          hero_cta_secondary_url: '#contact',
-          hero_background_image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b'
-        },
-        design: {
-          primary_color: '#2563eb',
-          secondary_color: '#16a34a',
-          font_family: 'Inter'
-        }
-      });
     } finally {
       setLoading(false);
     }
-  }, [loading]);
+  }, []);
 
   const loadSections = useCallback(async () => {
     try {
@@ -171,59 +148,51 @@ export const useSettings = () => {
     }
   }, []);
 
-  // Debounced update setting function
+  // Update setting function with better error handling
   const updateSetting = useCallback(async (category, key, value) => {
-    const updateKey = `${category}-${key}`;
-
-    // Prevent duplicate calls
-    if (pendingUpdates.has(updateKey)) {
-      return { error: null };
-    }
-
     try {
-      setPendingUpdates(prev => new Set(prev).add(updateKey));
-
+      console.log('Updating setting:', { category, key, value });
+      
       // For entire category updates (like translations)
       if (key === null && typeof value === 'object') {
-        const promises = [];
-
         // First, delete all existing settings for this category
         const { error: deleteError } = await supabase
           .from('site_settings')
           .delete()
           .eq('category', category);
 
-        if (deleteError) throw deleteError;
+        if (deleteError) {
+          console.error('Delete error:', deleteError);
+          throw deleteError;
+        }
 
         // Insert all new settings
-        Object.entries(value).forEach(([nestedKey, nestedValue]) => {
-          if (typeof nestedValue === 'object') {
-            promises.push(
-              supabase
-                .from('site_settings')
-                .insert({
-                  category,
-                  key: nestedKey,
-                  value: JSON.stringify(nestedValue),
-                  updated_at: new Date().toISOString()
-                })
-            );
-          } else {
-            promises.push(
-              supabase
-                .from('site_settings')
-                .insert({
-                  category,
-                  key: nestedKey,
-                  value: nestedValue,
-                  updated_at: new Date().toISOString()
-                })
-            );
-          }
+        const insertPromises = Object.entries(value).map(([nestedKey, nestedValue]) => {
+          const insertValue = typeof nestedValue === 'object' 
+            ? JSON.stringify(nestedValue) 
+            : nestedValue;
+            
+          return supabase
+            .from('site_settings')
+            .insert({
+              category,
+              key: nestedKey,
+              value: insertValue,
+              updated_at: new Date().toISOString()
+            });
         });
 
-        await Promise.all(promises);
+        const results = await Promise.all(insertPromises);
+        
+        // Check for errors in any of the inserts
+        const errors = results.filter(result => result.error);
+        if (errors.length > 0) {
+          console.error('Insert errors:', errors);
+          throw errors[0].error;
+        }
+
         setSettings(prev => ({ ...prev, [category]: value }));
+        console.log('Category updated successfully');
         return { error: null };
       }
 
@@ -233,18 +202,26 @@ export const useSettings = () => {
         valueToStore = JSON.stringify(value);
       }
 
-      // Use upsert instead of separate check/insert/update
-      const { error } = await supabase
+      // Use upsert to handle both insert and update
+      const { data, error } = await supabase
         .from('site_settings')
         .upsert({
           category,
           key,
           value: valueToStore,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'category,key' });
+        }, { 
+          onConflict: 'category,key',
+          ignoreDuplicates: false 
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Upsert error:', error);
+        throw error;
+      }
 
+      // Update local state
       setSettings(prev => ({
         ...prev,
         [category]: {
@@ -253,19 +230,14 @@ export const useSettings = () => {
         }
       }));
 
+      console.log('Setting updated successfully:', { category, key, value });
       return { error: null };
     } catch (error) {
       console.error("Error updating setting:", error);
       setError(error.message);
       return { error };
-    } finally {
-      setPendingUpdates(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(updateKey);
-        return newSet;
-      });
     }
-  }, [pendingUpdates]);
+  }, []);
 
   const updateSection = async (sectionId, updates) => {
     try {
