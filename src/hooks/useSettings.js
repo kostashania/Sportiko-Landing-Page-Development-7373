@@ -11,6 +11,7 @@ export const useSettings = () => {
   const [mediaLibrary, setMediaLibrary] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [pendingUpdates, setPendingUpdates] = useState(new Set());
 
   const loadSettings = async () => {
     if (loading) return; // Prevent multiple simultaneous calls
@@ -334,8 +335,18 @@ export const useSettings = () => {
     }
   };
 
-  const updateSetting = async (category, key, value) => {
+  // Debounced update setting function
+  const updateSetting = useCallback(async (category, key, value) => {
+    const updateKey = `${category}-${key}`;
+    
+    // Prevent duplicate calls
+    if (pendingUpdates.has(updateKey)) {
+      return { error: null };
+    }
+
     try {
+      setPendingUpdates(prev => new Set(prev).add(updateKey));
+      
       // For entire category updates (like translations)
       if (key === null && typeof value === 'object') {
         const promises = [];
@@ -386,42 +397,19 @@ export const useSettings = () => {
         valueToStore = JSON.stringify(value);
       }
       
-      // First check if the setting exists
-      const { data, error: fetchError } = await supabase
+      // Use upsert instead of separate check/insert/update
+      const { error } = await supabase
         .from('site_settings')
-        .select('id')
-        .eq('category', category)
-        .eq('key', key)
-        .single();
+        .upsert({
+          category,
+          key,
+          value: valueToStore,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'category,key'
+        });
       
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        // An error other than "not found"
-        throw fetchError;
-      }
-      
-      let result;
-      if (data?.id) {
-        // Update existing setting
-        result = await supabase
-          .from('site_settings')
-          .update({
-            value: valueToStore,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', data.id);
-      } else {
-        // Insert new setting
-        result = await supabase
-          .from('site_settings')
-          .insert({
-            category,
-            key,
-            value: valueToStore,
-            updated_at: new Date().toISOString()
-          });
-      }
-      
-      if (result.error) throw result.error;
+      if (error) throw error;
       
       setSettings(prev => ({
         ...prev,
@@ -436,8 +424,14 @@ export const useSettings = () => {
       console.error("Error updating setting:", error);
       setError(error.message);
       return { error };
+    } finally {
+      setPendingUpdates(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(updateKey);
+        return newSet;
+      });
     }
-  };
+  }, [pendingUpdates]);
 
   const updateSection = async (sectionId, updates) => {
     try {

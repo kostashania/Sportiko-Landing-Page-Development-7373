@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
@@ -13,12 +13,37 @@ const ContentSettings = ({ settings, updateSetting }) => {
     introText: settings?.content?.intro_text || 'Το Sportiko είναι μια σύγχρονη εφαρμογή...',
     footerText: settings?.content?.footer_text || '© 2024 Sportiko. Όλα τα δικαιώματα κατοχυρωμένα.'
   });
-
   const [activePreview, setActivePreview] = useState('hero');
 
+  // Debounce function to prevent multiple rapid calls
+  const debounce = useCallback((func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }, []);
+
+  // Debounced update function
+  const debouncedUpdate = useCallback(
+    debounce((key, value) => {
+      updateSetting('content', key.replace(/([A-Z])/g, '_$1').toLowerCase(), value);
+    }, 500),
+    [updateSetting]
+  );
+
   const handleChange = (key, value) => {
-    setLocalSettings(prev => ({ ...prev, [key]: value }));
-    updateSetting('content', key.replace(/([A-Z])/g, '_$1').toLowerCase(), value);
+    setLocalSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    
+    // Use debounced update to prevent too many API calls
+    debouncedUpdate(key, value);
   };
 
   const sectionIcons = {
@@ -49,7 +74,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
               <span className="text-2xl">{sectionIcons.hero}</span>
               <h3 className="text-lg font-semibold text-gray-900">Hero Section</h3>
             </div>
-            
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -63,7 +87,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
                   placeholder="Εισάγετε τον κύριο τίτλο..."
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Υπότιτλος
@@ -76,7 +99,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
                   placeholder="Εισάγετε τον υπότιτλο..."
                 />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -90,7 +112,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
                     placeholder="π.χ. Ξεκινήστε Δωρεάν"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Δευτερεύον Κουμπί CTA
@@ -113,7 +134,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
               <span className="text-2xl">{sectionIcons.intro}</span>
               <h3 className="text-lg font-semibold text-gray-900">Εισαγωγή</h3>
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Κείμενο Εισαγωγής
@@ -134,7 +154,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
               <span className="text-2xl">{sectionIcons.footer}</span>
               <h3 className="text-lg font-semibold text-gray-900">Footer</h3>
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Κείμενο Footer
@@ -156,7 +175,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
             <SafeIcon icon={FiEye} className="w-6 h-6 text-purple-600" />
             <h3 className="text-lg font-semibold text-gray-900">Προεπισκόπηση</h3>
           </div>
-
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -172,7 +190,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
                 <option value="footer">Footer</option>
               </select>
             </div>
-
             <div className="border rounded-lg p-4 bg-gray-50">
               {activePreview === 'hero' && (
                 <div className="text-center space-y-3">
@@ -192,7 +209,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
                   </div>
                 </div>
               )}
-
               {activePreview === 'intro' && (
                 <div>
                   <h4 className="text-lg font-bold text-gray-900 mb-2">
@@ -203,7 +219,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
                   </p>
                 </div>
               )}
-
               {activePreview === 'footer' && (
                 <div className="text-center">
                   <p className="text-sm text-gray-600">
@@ -213,7 +228,6 @@ const ContentSettings = ({ settings, updateSetting }) => {
               )}
             </div>
           </div>
-
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
               <strong>Συμβουλή:</strong> Χρησιμοποιήστε emojis για να κάνετε το περιεχόμενό σας πιο ελκυστικό και φιλικό.
