@@ -3,7 +3,7 @@ import { useSettings } from '../../hooks/useSettings';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiUpload, FiImage, FiSave, FiEye } = FiIcons;
+const { FiUpload, FiImage, FiSave, FiEye, FiAlertCircle } = FiIcons;
 
 const LogoSettings = () => {
   const { settings, updateSetting, uploadMedia } = useSettings();
@@ -12,6 +12,7 @@ const LogoSettings = () => {
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState('');
   const [imageError, setImageError] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
 
   useEffect(() => {
     setLogoUrl(settings?.general?.logo_url || '/logo.svg');
@@ -25,21 +26,40 @@ const LogoSettings = () => {
     setUploading(true);
     setSuccess('');
     setImageError(false);
+    setUploadProgress('Επικύρωση αρχείου...');
 
     try {
-      const { url, error } = await uploadMedia(file, 'logo');
-      if (error) throw error;
+      // Validate file size and type
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        throw new Error('Το αρχείο είναι πολύ μεγάλο. Μέγιστο μέγεθος: 10MB');
+      }
 
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Μη υποστηριζόμενος τύπος αρχείου. Υποστηρίζονται: JPG, PNG, GIF, WebP, SVG');
+      }
+
+      setUploadProgress('Βελτιστοποίηση εικόνας...');
+      
+      const { url, error } = await uploadMedia(file, 'logo');
+      if (error) throw new Error(error);
+
+      setUploadProgress('Αποθήκευση...');
       setLogoUrl(url);
       await updateSetting('general', 'logo_url', url);
+      
       setSuccess('Το λογότυπο ενημερώθηκε επιτυχώς!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Upload error:', error);
-      setSuccess('Σφάλμα κατά την ανέβασμα του λογότυπου.');
-      setTimeout(() => setSuccess(''), 3000);
+      setSuccess(`Σφάλμα: ${error.message}`);
+      setTimeout(() => setSuccess(''), 5000);
     } finally {
       setUploading(false);
+      setUploadProgress('');
+      // Clear file input
+      event.target.value = '';
     }
   };
 
@@ -85,7 +105,7 @@ const LogoSettings = () => {
       <div>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Ρυθμίσεις Λογότυπου</h2>
         <p className="text-gray-600 mb-8">
-          Ανεβάστε ή ενημερώστε το λογότυπο της ιστοσελίδας σας.
+          Ανεβάστε ή ενημερώστε το λογότυπο της ιστοσελίδας σας. Η εικόνα θα βελτιστοποιηθεί αυτόματα.
         </p>
       </div>
 
@@ -95,9 +115,24 @@ const LogoSettings = () => {
             ? 'bg-red-50 border-red-200'
             : 'bg-green-50 border-green-200'
         }`}>
-          <p className={success.includes('Σφάλμα') || success.includes('σφάλμα') ? 'text-red-800' : 'text-green-800'}>
-            {success}
-          </p>
+          <div className="flex items-center gap-2">
+            <SafeIcon 
+              icon={success.includes('Σφάλμα') ? FiAlertCircle : FiImage} 
+              className={`w-5 h-5 ${success.includes('Σφάλμα') ? 'text-red-600' : 'text-green-600'}`} 
+            />
+            <p className={success.includes('Σφάλμα') || success.includes('σφάλμα') ? 'text-red-800' : 'text-green-800'}>
+              {success}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {uploadProgress && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <p className="text-blue-800">{uploadProgress}</p>
+          </div>
         </div>
       )}
 
@@ -119,8 +154,17 @@ const LogoSettings = () => {
                 accept="image/*"
                 onChange={handleLogoUpload}
                 disabled={uploading}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Υποστηρίζονται: JPG, PNG, GIF, WebP, SVG (μέγ. 10MB)
+              </p>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-sm text-yellow-800">
+                <strong>Αυτόματη βελτιστοποίηση:</strong> Η εικόνα θα προσαρμοστεί αυτόματα σε κατάλληλες διαστάσεις (400x200px μέγιστο) για καλύτερη απόδοση.
+              </p>
             </div>
 
             <div>
@@ -171,7 +215,7 @@ const LogoSettings = () => {
           </div>
 
           <div className="flex flex-col items-center justify-center space-y-6">
-            <div className="bg-gray-50 p-8 rounded-lg w-full flex items-center justify-center">
+            <div className="bg-gray-50 p-8 rounded-lg w-full flex items-center justify-center min-h-32">
               {imageError ? (
                 <div className="flex flex-col items-center justify-center p-8 text-gray-500">
                   <SafeIcon icon={FiImage} className="w-16 h-16 mb-4" />
@@ -195,13 +239,13 @@ const LogoSettings = () => {
             </div>
 
             <div className="text-sm text-gray-600 text-center">
-              <p>Προτεινόμενες διαστάσεις: 200x80 pixels</p>
+              <p>Προτεινόμενες διαστάσεις: 400x200 pixels</p>
               <p>Προτεινόμενοι τύποι: PNG, SVG (με διαφάνεια)</p>
             </div>
 
             <div className="bg-blue-50 p-4 rounded-lg w-full">
               <p className="text-blue-800 text-sm">
-                <strong>Συμβουλή:</strong> Για καλύτερα αποτελέσματα, χρησιμοποιήστε εικόνα με διαφανές φόντο.
+                <strong>Συμβουλή:</strong> Για καλύτερα αποτελέσματα, χρησιμοποιήστε εικόνα με διαφανές φόντο. Η εικόνα θα βελτιστοποιηθεί αυτόματα για γρήγορη φόρτωση.
               </p>
             </div>
 

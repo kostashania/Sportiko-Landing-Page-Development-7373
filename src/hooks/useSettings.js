@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import supabase from '../lib/supabase';
+import { resizeImage, validateImageFile } from '../utils/imageUtils';
 
 export const useSettings = () => {
   const [settings, setSettings] = useState({});
@@ -15,11 +16,11 @@ export const useSettings = () => {
 
   const loadSettings = useCallback(async () => {
     if (loading) return; // Prevent multiple simultaneous calls
-    
+
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
@@ -32,6 +33,7 @@ export const useSettings = () => {
         if (!settingsObj[setting.category]) {
           settingsObj[setting.category] = {};
         }
+
         // Handle nested JSON values
         try {
           if (typeof setting.value === 'string' && (
@@ -45,7 +47,7 @@ export const useSettings = () => {
           settingsObj[setting.category][setting.key] = setting.value;
         }
       });
-      
+
       setSettings(settingsObj);
     } catch (error) {
       console.warn('Failed to load settings:', error);
@@ -56,7 +58,7 @@ export const useSettings = () => {
           site_name: 'Sportiko.eu',
           project_id: 'bjelydvroavsqczejpgd',
           app_url: 'https://spiffy-nougat-80a628.netlify.app',
-          logo_url: '/logo_500x500.png',
+          logo_url: '/logo.svg',
           logo_alt: 'Sportiko Logo'
         },
         content: {
@@ -172,7 +174,7 @@ export const useSettings = () => {
   // Debounced update setting function
   const updateSetting = useCallback(async (category, key, value) => {
     const updateKey = `${category}-${key}`;
-    
+
     // Prevent duplicate calls
     if (pendingUpdates.has(updateKey)) {
       return { error: null };
@@ -180,19 +182,19 @@ export const useSettings = () => {
 
     try {
       setPendingUpdates(prev => new Set(prev).add(updateKey));
-      
+
       // For entire category updates (like translations)
       if (key === null && typeof value === 'object') {
         const promises = [];
-        
+
         // First, delete all existing settings for this category
         const { error: deleteError } = await supabase
           .from('site_settings')
           .delete()
           .eq('category', category);
-          
+
         if (deleteError) throw deleteError;
-        
+
         // Insert all new settings
         Object.entries(value).forEach(([nestedKey, nestedValue]) => {
           if (typeof nestedValue === 'object') {
@@ -219,7 +221,7 @@ export const useSettings = () => {
             );
           }
         });
-        
+
         await Promise.all(promises);
         setSettings(prev => ({ ...prev, [category]: value }));
         return { error: null };
@@ -230,7 +232,7 @@ export const useSettings = () => {
       if (typeof value === 'object') {
         valueToStore = JSON.stringify(value);
       }
-      
+
       // Use upsert instead of separate check/insert/update
       const { error } = await supabase
         .from('site_settings')
@@ -239,12 +241,10 @@ export const useSettings = () => {
           key,
           value: valueToStore,
           updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'category,key'
-        });
-      
+        }, { onConflict: 'category,key' });
+
       if (error) throw error;
-      
+
       setSettings(prev => ({
         ...prev,
         [category]: {
@@ -252,7 +252,7 @@ export const useSettings = () => {
           [key]: value
         }
       }));
-      
+
       return { error: null };
     } catch (error) {
       console.error("Error updating setting:", error);
@@ -281,9 +281,7 @@ export const useSettings = () => {
 
       setSections(prev =>
         prev.map(section =>
-          section.id === sectionId
-            ? { ...section, ...updates }
-            : section
+          section.id === sectionId ? { ...section, ...updates } : section
         )
       );
 
@@ -332,9 +330,7 @@ export const useSettings = () => {
 
       setFeatures(prev =>
         prev.map(feature =>
-          feature.id === featureId
-            ? { ...feature, ...updates }
-            : feature
+          feature.id === featureId ? { ...feature, ...updates } : feature
         ).sort((a, b) => a.order_index - b.order_index)
       );
 
@@ -354,10 +350,7 @@ export const useSettings = () => {
 
       if (error) throw error;
 
-      setFeatures(prev =>
-        prev.filter(feature => feature.id !== featureId)
-      );
-
+      setFeatures(prev => prev.filter(feature => feature.id !== featureId));
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -403,9 +396,7 @@ export const useSettings = () => {
 
       setBenefits(prev =>
         prev.map(benefit =>
-          benefit.id === benefitId
-            ? { ...benefit, ...updates }
-            : benefit
+          benefit.id === benefitId ? { ...benefit, ...updates } : benefit
         ).sort((a, b) => a.order_index - b.order_index)
       );
 
@@ -425,10 +416,7 @@ export const useSettings = () => {
 
       if (error) throw error;
 
-      setBenefits(prev =>
-        prev.filter(benefit => benefit.id !== benefitId)
-      );
-
+      setBenefits(prev => prev.filter(benefit => benefit.id !== benefitId));
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -474,9 +462,7 @@ export const useSettings = () => {
 
       setDemoItems(prev =>
         prev.map(item =>
-          item.id === itemId
-            ? { ...item, ...updates }
-            : item
+          item.id === itemId ? { ...item, ...updates } : item
         ).sort((a, b) => a.order_index - b.order_index)
       );
 
@@ -496,10 +482,7 @@ export const useSettings = () => {
 
       if (error) throw error;
 
-      setDemoItems(prev =>
-        prev.filter(item => item.id !== itemId)
-      );
-
+      setDemoItems(prev => prev.filter(item => item.id !== itemId));
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -545,9 +528,7 @@ export const useSettings = () => {
 
       setContactInfo(prev =>
         prev.map(contact =>
-          contact.id === contactId
-            ? { ...contact, ...updates }
-            : contact
+          contact.id === contactId ? { ...contact, ...updates } : contact
         ).sort((a, b) => a.order_index - b.order_index)
       );
 
@@ -567,10 +548,7 @@ export const useSettings = () => {
 
       if (error) throw error;
 
-      setContactInfo(prev =>
-        prev.filter(contact => contact.id !== contactId)
-      );
-
+      setContactInfo(prev => prev.filter(contact => contact.id !== contactId));
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -580,34 +558,72 @@ export const useSettings = () => {
 
   const uploadMedia = async (file, category = 'general') => {
     try {
-      const fileName = `${Date.now()}-${file.name}`;
+      // Validate file
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        throw new Error(validation.error);
+      }
+
+      // Resize image if it's not SVG
+      let fileToUpload = file;
+      if (file.type !== 'image/svg+xml') {
+        // Determine max dimensions based on category
+        let maxWidth = 800;
+        let maxHeight = 600;
+        
+        if (category === 'logo') {
+          maxWidth = 400;
+          maxHeight = 200;
+        } else if (category === 'hero') {
+          maxWidth = 1920;
+          maxHeight = 1080;
+        }
+        
+        fileToUpload = await resizeImage(file, maxWidth, maxHeight, 0.85);
+      }
+
+      // Generate unique filename
+      const fileExt = fileToUpload.name.split('.').pop();
+      const fileName = `${category}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+      // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('media')
-        .upload(fileName, file);
+        .upload(fileName, fileToUpload, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
+      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('media')
         .getPublicUrl(fileName);
 
+      // Save to media library
       const { error: insertError } = await supabase
         .from('media_library')
         .insert([{
-          filename: file.name,
+          filename: fileToUpload.name,
           url: publicUrl,
-          type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file',
+          type: fileToUpload.type.startsWith('image/') ? 'image' : 
+                fileToUpload.type.startsWith('video/') ? 'video' : 'file',
           category,
-          size_bytes: file.size
+          size_bytes: fileToUpload.size,
+          alt_text: `${category} image`
         }]);
 
       if (insertError) throw insertError;
 
+      // Reload media library
       await loadMediaLibrary();
+
       return { url: publicUrl, error: null };
     } catch (error) {
+      console.error('Upload error:', error);
       setError(error.message);
-      return { url: null, error };
+      return { url: null, error: error.message };
     }
   };
 
