@@ -14,25 +14,21 @@ export const useSettings = () => {
 
   const loadSettings = async () => {
     if (loading) return; // Prevent multiple simultaneous calls
-    
     try {
       setLoading(true);
       setError(null);
-      
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
         .order('category', { ascending: true });
-        
+
       if (error) throw error;
-      
+
       const settingsObj = {};
-      
       data?.forEach(setting => {
         if (!settingsObj[setting.category]) {
           settingsObj[setting.category] = {};
         }
-        
         // Handle nested JSON values
         try {
           if (typeof setting.value === 'string' && (
@@ -46,12 +42,10 @@ export const useSettings = () => {
           settingsObj[setting.category][setting.key] = setting.value;
         }
       });
-      
       setSettings(settingsObj);
     } catch (error) {
       console.warn('Failed to load settings:', error);
       setError(error.message);
-      
       // Set default settings on error
       setSettings({
         general: {
@@ -87,14 +81,12 @@ export const useSettings = () => {
         .from('sections')
         .select('*')
         .order('order_index', { ascending: true });
-        
+
       if (error) throw error;
-      
       setSections(data || []);
     } catch (error) {
       console.warn('Failed to load sections:', error);
       setError(error.message);
-      
       // Set default sections
       setSections([
         {
@@ -167,14 +159,12 @@ export const useSettings = () => {
         .from('features')
         .select('*')
         .order('order_index', { ascending: true });
-        
+
       if (error) throw error;
-      
       setFeatures(data || []);
     } catch (error) {
       console.warn('Failed to load features:', error);
       setError(error.message);
-      
       // Set default features
       setFeatures([
         {
@@ -205,14 +195,12 @@ export const useSettings = () => {
         .from('benefits')
         .select('*')
         .order('order_index', { ascending: true });
-        
+
       if (error) throw error;
-      
       setBenefits(data || []);
     } catch (error) {
       console.warn('Failed to load benefits:', error);
       setError(error.message);
-      
       // Set default benefits
       setBenefits([
         {
@@ -246,14 +234,12 @@ export const useSettings = () => {
         .from('demo_items')
         .select('*')
         .order('order_index', { ascending: true });
-        
+
       if (error) throw error;
-      
       setDemoItems(data || []);
     } catch (error) {
       console.warn('Failed to load demo items:', error);
       setError(error.message);
-      
       // Set default demo items
       setDemoItems([
         {
@@ -293,14 +279,12 @@ export const useSettings = () => {
         .from('contact_info')
         .select('*')
         .order('order_index', { ascending: true });
-        
+
       if (error) throw error;
-      
       setContactInfo(data || []);
     } catch (error) {
       console.warn('Failed to load contact info:', error);
       setError(error.message);
-      
       // Set default contact info
       setContactInfo([
         {
@@ -340,9 +324,8 @@ export const useSettings = () => {
         .from('media_library')
         .select('*')
         .order('created_at', { ascending: false });
-        
+
       if (error) throw error;
-      
       setMediaLibrary(data || []);
     } catch (error) {
       console.warn('Failed to load media library:', error);
@@ -393,42 +376,64 @@ export const useSettings = () => {
         });
         
         await Promise.all(promises);
-        
-        setSettings(prev => ({
-          ...prev,
-          [category]: value
-        }));
-        
+        setSettings(prev => ({ ...prev, [category]: value }));
         return { error: null };
       }
-      
+
       // For single setting updates
       let valueToStore = value;
       if (typeof value === 'object') {
         valueToStore = JSON.stringify(value);
       }
       
-      const { error } = await supabase
+      // First check if the setting exists
+      const { data, error: fetchError } = await supabase
         .from('site_settings')
-        .upsert({
-          category,
-          key,
-          value: valueToStore,
-          updated_at: new Date().toISOString()
-        });
-        
-      if (error) throw error;
+        .select('id')
+        .eq('category', category)
+        .eq('key', key)
+        .single();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        // An error other than "not found"
+        throw fetchError;
+      }
+      
+      let result;
+      if (data?.id) {
+        // Update existing setting
+        result = await supabase
+          .from('site_settings')
+          .update({
+            value: valueToStore,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', data.id);
+      } else {
+        // Insert new setting
+        result = await supabase
+          .from('site_settings')
+          .insert({
+            category,
+            key,
+            value: valueToStore,
+            updated_at: new Date().toISOString()
+          });
+      }
+      
+      if (result.error) throw result.error;
       
       setSettings(prev => ({
         ...prev,
         [category]: {
-          ...prev[category],
+          ...(prev[category] || {}),
           [key]: value
         }
       }));
       
       return { error: null };
     } catch (error) {
+      console.error("Error updating setting:", error);
       setError(error.message);
       return { error };
     }
@@ -443,15 +448,17 @@ export const useSettings = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', sectionId);
-        
+
       if (error) throw error;
-      
+
       setSections(prev =>
         prev.map(section =>
-          section.id === sectionId ? { ...section, ...updates } : section
+          section.id === sectionId
+            ? { ...section, ...updates }
+            : section
         )
       );
-      
+
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -469,11 +476,13 @@ export const useSettings = () => {
           updated_at: new Date().toISOString()
         }])
         .select();
-        
+
       if (error) throw error;
-      
-      setFeatures(prev => [...prev, data[0]].sort((a, b) => a.order_index - b.order_index));
-      
+
+      setFeatures(prev =>
+        [...prev, data[0]].sort((a, b) => a.order_index - b.order_index)
+      );
+
       return { data: data[0], error: null };
     } catch (error) {
       setError(error.message);
@@ -490,15 +499,17 @@ export const useSettings = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', featureId);
-        
+
       if (error) throw error;
-      
+
       setFeatures(prev =>
         prev.map(feature =>
-          feature.id === featureId ? { ...feature, ...updates } : feature
+          feature.id === featureId
+            ? { ...feature, ...updates }
+            : feature
         ).sort((a, b) => a.order_index - b.order_index)
       );
-      
+
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -512,11 +523,13 @@ export const useSettings = () => {
         .from('features')
         .delete()
         .eq('id', featureId);
-        
+
       if (error) throw error;
-      
-      setFeatures(prev => prev.filter(feature => feature.id !== featureId));
-      
+
+      setFeatures(prev =>
+        prev.filter(feature => feature.id !== featureId)
+      );
+
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -534,11 +547,13 @@ export const useSettings = () => {
           updated_at: new Date().toISOString()
         }])
         .select();
-        
+
       if (error) throw error;
-      
-      setBenefits(prev => [...prev, data[0]].sort((a, b) => a.order_index - b.order_index));
-      
+
+      setBenefits(prev =>
+        [...prev, data[0]].sort((a, b) => a.order_index - b.order_index)
+      );
+
       return { data: data[0], error: null };
     } catch (error) {
       setError(error.message);
@@ -555,15 +570,17 @@ export const useSettings = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', benefitId);
-        
+
       if (error) throw error;
-      
+
       setBenefits(prev =>
         prev.map(benefit =>
-          benefit.id === benefitId ? { ...benefit, ...updates } : benefit
+          benefit.id === benefitId
+            ? { ...benefit, ...updates }
+            : benefit
         ).sort((a, b) => a.order_index - b.order_index)
       );
-      
+
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -577,11 +594,13 @@ export const useSettings = () => {
         .from('benefits')
         .delete()
         .eq('id', benefitId);
-        
+
       if (error) throw error;
-      
-      setBenefits(prev => prev.filter(benefit => benefit.id !== benefitId));
-      
+
+      setBenefits(prev =>
+        prev.filter(benefit => benefit.id !== benefitId)
+      );
+
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -599,11 +618,13 @@ export const useSettings = () => {
           updated_at: new Date().toISOString()
         }])
         .select();
-        
+
       if (error) throw error;
-      
-      setDemoItems(prev => [...prev, data[0]].sort((a, b) => a.order_index - b.order_index));
-      
+
+      setDemoItems(prev =>
+        [...prev, data[0]].sort((a, b) => a.order_index - b.order_index)
+      );
+
       return { data: data[0], error: null };
     } catch (error) {
       setError(error.message);
@@ -620,15 +641,17 @@ export const useSettings = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', itemId);
-        
+
       if (error) throw error;
-      
+
       setDemoItems(prev =>
         prev.map(item =>
-          item.id === itemId ? { ...item, ...updates } : item
+          item.id === itemId
+            ? { ...item, ...updates }
+            : item
         ).sort((a, b) => a.order_index - b.order_index)
       );
-      
+
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -642,11 +665,13 @@ export const useSettings = () => {
         .from('demo_items')
         .delete()
         .eq('id', itemId);
-        
+
       if (error) throw error;
-      
-      setDemoItems(prev => prev.filter(item => item.id !== itemId));
-      
+
+      setDemoItems(prev =>
+        prev.filter(item => item.id !== itemId)
+      );
+
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -664,11 +689,13 @@ export const useSettings = () => {
           updated_at: new Date().toISOString()
         }])
         .select();
-        
+
       if (error) throw error;
-      
-      setContactInfo(prev => [...prev, data[0]].sort((a, b) => a.order_index - b.order_index));
-      
+
+      setContactInfo(prev =>
+        [...prev, data[0]].sort((a, b) => a.order_index - b.order_index)
+      );
+
       return { data: data[0], error: null };
     } catch (error) {
       setError(error.message);
@@ -685,15 +712,17 @@ export const useSettings = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', contactId);
-        
+
       if (error) throw error;
-      
+
       setContactInfo(prev =>
         prev.map(contact =>
-          contact.id === contactId ? { ...contact, ...updates } : contact
+          contact.id === contactId
+            ? { ...contact, ...updates }
+            : contact
         ).sort((a, b) => a.order_index - b.order_index)
       );
-      
+
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -707,11 +736,13 @@ export const useSettings = () => {
         .from('contact_info')
         .delete()
         .eq('id', contactId);
-        
+
       if (error) throw error;
-      
-      setContactInfo(prev => prev.filter(contact => contact.id !== contactId));
-      
+
+      setContactInfo(prev =>
+        prev.filter(contact => contact.id !== contactId)
+      );
+
       return { error: null };
     } catch (error) {
       setError(error.message);
@@ -722,32 +753,29 @@ export const useSettings = () => {
   const uploadMedia = async (file, category = 'general') => {
     try {
       const fileName = `${Date.now()}-${file.name}`;
-      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('media')
         .upload(fileName, file);
-        
+
       if (uploadError) throw uploadError;
-      
+
       const { data: { publicUrl } } = supabase.storage
         .from('media')
         .getPublicUrl(fileName);
-        
+
       const { error: insertError } = await supabase
         .from('media_library')
         .insert([{
           filename: file.name,
           url: publicUrl,
-          type: file.type.startsWith('image/') ? 'image' : 
-                file.type.startsWith('video/') ? 'video' : 'file',
+          type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file',
           category,
           size_bytes: file.size
         }]);
-        
+
       if (insertError) throw insertError;
-      
+
       await loadMediaLibrary();
-      
       return { url: publicUrl, error: null };
     } catch (error) {
       setError(error.message);
