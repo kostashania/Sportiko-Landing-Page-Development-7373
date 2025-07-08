@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
 import { useSettings } from '../../hooks/useSettings';
@@ -20,49 +20,57 @@ import FeaturesManager from './FeaturesManager';
 import DemoItemsManager from './DemoItemsManager';
 import ContactManager from './ContactManager';
 
-const { 
-  FiSave, FiArrowLeft, FiEye, FiEdit3, FiPalette, 
-  FiType, FiImage, FiLink, FiSettings, FiUser, 
-  FiSearch, FiZap, FiLayers, FiShield, FiBarChart3,
-  FiGlobe, FiLayout, FiCamera, FiPhone, FiCheck
-} = FiIcons;
+const { FiSave, FiArrowLeft, FiEye, FiEdit3, FiPalette, FiType, FiImage, FiLink, FiSettings, FiUser, FiSearch, FiZap, FiLayers, FiShield, FiBarChart3, FiGlobe, FiLayout, FiCamera, FiPhone, FiCheck } = FiIcons;
 
 const AdminPanel = () => {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { 
-    settings, updateSetting, loading: settingsLoading,
-    loadSettings, loadFeatures, loadSections, loadBenefits,
-    loadDemoItems, loadContactInfo, loadMediaLibrary
-  } = useSettings();
+  const { settings, updateSetting, loading: settingsLoading, loadSettings, loadFeatures, loadSections, loadBenefits, loadDemoItems, loadContactInfo, loadMediaLibrary } = useSettings();
   const [activeTab, setActiveTab] = useState('general');
   const [saveStatus, setSaveStatus] = useState('');
+  const [initialized, setInitialized] = useState(false);
+  const initializeRef = useRef(false);
 
-  // Load all data when the component mounts
+  // Load all data when the component mounts - but only once
   useEffect(() => {
     const initialize = async () => {
-      if (user) {
-        await loadSettings();
-        await loadSections();
-        await loadFeatures();
-        await loadBenefits();
-        await loadDemoItems();
-        await loadContactInfo();
-        await loadMediaLibrary();
+      // Prevent multiple initializations
+      if (initializeRef.current || !user || initialized) {
+        return;
+      }
+      
+      initializeRef.current = true;
+      
+      try {
+        console.log('Initializing admin data...');
+        await Promise.all([
+          loadSettings(),
+          loadSections(),
+          loadFeatures(),
+          loadBenefits(),
+          loadDemoItems(),
+          loadContactInfo(),
+          loadMediaLibrary()
+        ]);
+        setInitialized(true);
+        console.log('Admin data initialized successfully');
+      } catch (error) {
+        console.error('Error initializing admin data:', error);
+        // Reset the ref so it can try again
+        initializeRef.current = false;
       }
     };
-    
-    initialize();
-  }, [
-    user, loadSettings, loadSections, loadFeatures, 
-    loadBenefits, loadDemoItems, loadContactInfo, loadMediaLibrary
-  ]);
 
-  if (authLoading || settingsLoading) {
+    if (user && !authLoading) {
+      initialize();
+    }
+  }, [user, authLoading]); // Remove the load functions from dependencies
+
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Φόρτωση...</p>
+          <p className="text-gray-600">Έλεγχος πρόσβασης...</p>
         </div>
       </div>
     );
@@ -70,6 +78,17 @@ const AdminPanel = () => {
 
   if (!user) {
     return <LoginForm />;
+  }
+
+  if (settingsLoading || !initialized) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Φόρτωση δεδομένων...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleSaveAll = async () => {
@@ -147,7 +166,10 @@ const AdminPanel = () => {
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold text-gray-900">Admin Panel - Sportiko</h1>
               <div className="flex gap-2">
-                <a href="#/" className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors">
+                <a
+                  href="#/"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                >
                   <SafeIcon icon={FiEye} className="w-4 h-4" />
                   Προβολή Σελίδας
                 </a>
@@ -188,6 +210,7 @@ const AdminPanel = () => {
           </div>
         </div>
       </div>
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex gap-8">
           {/* Sidebar */}
@@ -209,6 +232,7 @@ const AdminPanel = () => {
               ))}
             </nav>
           </div>
+
           {/* Main Content */}
           <div className="flex-1 bg-white rounded-xl shadow-lg p-8">
             {renderTabContent()}

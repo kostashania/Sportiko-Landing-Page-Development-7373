@@ -13,11 +13,13 @@ export const useSettings = () => {
   const [error, setError] = useState(null);
   const [pendingUpdates, setPendingUpdates] = useState(new Set());
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     if (loading) return; // Prevent multiple simultaneous calls
+    
     try {
       setLoading(true);
       setError(null);
+      
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
@@ -43,6 +45,7 @@ export const useSettings = () => {
           settingsObj[setting.category][setting.key] = setting.value;
         }
       });
+      
       setSettings(settingsObj);
     } catch (error) {
       console.warn('Failed to load settings:', error);
@@ -74,9 +77,9 @@ export const useSettings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading]);
 
-  const loadSections = async () => {
+  const loadSections = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('sections')
@@ -87,72 +90,9 @@ export const useSettings = () => {
       setSections(data || []);
     } catch (error) {
       console.warn('Failed to load sections:', error);
-      setError(error.message);
-      // Set default sections
-      setSections([
-        {
-          id: '1',
-          name: 'hero',
-          title: 'Hero Section',
-          is_active: true,
-          order_index: 1,
-          content: {
-            logo: '/logo_500x500.png',
-            background_type: 'gradient',
-            cta_primary_url: '#features',
-            cta_secondary_url: '#contact'
-          }
-        },
-        {
-          id: '2',
-          name: 'intro',
-          title: 'Introduction',
-          is_active: true,
-          order_index: 2,
-          content: {}
-        },
-        {
-          id: '3',
-          name: 'features',
-          title: 'Features',
-          is_active: true,
-          order_index: 3,
-          content: {
-            columns: 3,
-            layout: 'grid'
-          }
-        },
-        {
-          id: '4',
-          name: 'benefits',
-          title: 'Benefits',
-          is_active: true,
-          order_index: 4,
-          content: {}
-        },
-        {
-          id: '5',
-          name: 'demo',
-          title: 'Demo',
-          is_active: true,
-          order_index: 5,
-          content: {
-            show_video: false
-          }
-        },
-        {
-          id: '6',
-          name: 'contact',
-          title: 'Contact',
-          is_active: true,
-          order_index: 6,
-          content: {
-            google_maps_url: 'https://maps.google.com/?q=Χανιά,Ελλάδα'
-          }
-        }
-      ]);
+      setSections([]);
     }
-  };
+  }, []);
 
   const loadFeatures = useCallback(async () => {
     try {
@@ -165,28 +105,7 @@ export const useSettings = () => {
       setFeatures(data || []);
     } catch (error) {
       console.warn('Failed to load features:', error);
-      setError(error.message);
-      // Set default features
-      setFeatures([
-        {
-          id: '1',
-          title: '💰 Sportiko Fin',
-          description: 'Οικονομική διαχείριση συλλόγων. Έσοδα, έξοδα, εγκρίσεις, αναφορές και ρόλοι. Όλα στο: fin.sportiko.eu',
-          icon: 'FiDollarSign',
-          link_url: 'https://fin.sportiko.eu',
-          order_index: 1,
-          is_active: true
-        },
-        {
-          id: '2',
-          title: '🎓 Sportiko Academy',
-          description: 'Διαχείριση ακαδημιών: Εγγραφές, παρουσίες, επικοινωνία με γονείς, ειδοποιήσεις & αξιολογήσεις. Δοκιμάστε το στο: academy.sportiko.eu',
-          icon: 'FiUsers',
-          link_url: 'https://academy.sportiko.eu',
-          order_index: 2,
-          is_active: true
-        }
-      ]);
+      setFeatures([]);
     }
   }, []);
 
@@ -201,31 +120,7 @@ export const useSettings = () => {
       setBenefits(data || []);
     } catch (error) {
       console.warn('Failed to load benefits:', error);
-      setError(error.message);
-      // Set default benefits
-      setBenefits([
-        {
-          id: '1',
-          title: 'Εύχρηστο περιβάλλον',
-          description: 'Εύχρηστο περιβάλλον για όλους – ακόμα και για μη εξοικειωμένους',
-          order_index: 1,
-          is_active: true
-        },
-        {
-          id: '2',
-          title: 'Διαφάνεια',
-          description: 'Διαφάνεια στη διαχείριση των οικονομικών του συλλόγου',
-          order_index: 2,
-          is_active: true
-        },
-        {
-          id: '3',
-          title: 'Πλήρες ιστορικό',
-          description: 'Πλήρες ιστορικό για κάθε καταχώρηση & ενέργεια',
-          order_index: 3,
-          is_active: true
-        }
-      ]);
+      setBenefits([]);
     }
   }, []);
 
@@ -240,37 +135,7 @@ export const useSettings = () => {
       setDemoItems(data || []);
     } catch (error) {
       console.warn('Failed to load demo items:', error);
-      setError(error.message);
-      // Set default demo items
-      setDemoItems([
-        {
-          id: '1',
-          title: 'Καρτέλα Ταμείου',
-          image_url: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f',
-          link_url: 'https://fin.sportiko.eu',
-          icon: 'FiMonitor',
-          order_index: 1,
-          is_active: true
-        },
-        {
-          id: '2',
-          title: 'Φόρμα Καταγραφής Εξόδων',
-          image_url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f',
-          link_url: 'https://fin.sportiko.eu',
-          icon: 'FiTablet',
-          order_index: 2,
-          is_active: true
-        },
-        {
-          id: '3',
-          title: 'Σελίδα Εγκρίσεων',
-          image_url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71',
-          link_url: 'https://fin.sportiko.eu',
-          icon: 'FiSmartphone',
-          order_index: 3,
-          is_active: true
-        }
-      ]);
+      setDemoItems([]);
     }
   }, []);
 
@@ -285,41 +150,11 @@ export const useSettings = () => {
       setContactInfo(data || []);
     } catch (error) {
       console.warn('Failed to load contact info:', error);
-      setError(error.message);
-      // Set default contact info
-      setContactInfo([
-        {
-          id: '1',
-          type: 'email',
-          value: 'info@sportiko.eu',
-          link: 'mailto:info@sportiko.eu',
-          icon: 'FiMail',
-          order_index: 1,
-          is_active: true
-        },
-        {
-          id: '2',
-          type: 'phone',
-          value: '(+30) 698 4146 197',
-          link: 'tel:+306984146197',
-          icon: 'FiPhone',
-          order_index: 2,
-          is_active: true
-        },
-        {
-          id: '3',
-          type: 'address',
-          value: 'Χανιά, Κρήτη',
-          link: 'https://maps.google.com/?q=Χανιά,Ελλάδα',
-          icon: 'FiMapPin',
-          order_index: 3,
-          is_active: true
-        }
-      ]);
+      setContactInfo([]);
     }
   }, []);
 
-  const loadMediaLibrary = async () => {
+  const loadMediaLibrary = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('media_library')
@@ -330,10 +165,9 @@ export const useSettings = () => {
       setMediaLibrary(data || []);
     } catch (error) {
       console.warn('Failed to load media library:', error);
-      setError(error.message);
       setMediaLibrary([]);
     }
-  };
+  }, []);
 
   // Debounced update setting function
   const updateSetting = useCallback(async (category, key, value) => {
