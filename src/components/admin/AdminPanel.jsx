@@ -51,6 +51,7 @@ const AdminPanel = () => {
           loadContactInfo(),
           loadMediaLibrary()
         ]);
+        
         setInitialized(true);
         console.log('Admin data initialized successfully');
       } catch (error) {
@@ -175,6 +176,7 @@ const AdminPanel = () => {
                 </a>
               </div>
             </div>
+
             <div className="flex items-center gap-4">
               <button
                 onClick={handleSaveAll}
@@ -196,10 +198,12 @@ const AdminPanel = () => {
                   ? 'Σφάλμα!'
                   : 'Αποθήκευση'}
               </button>
+
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <span>Συνδεδεμένος ως:</span>
                 <span className="font-medium">{user.email}</span>
               </div>
+
               <button
                 onClick={signOut}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"

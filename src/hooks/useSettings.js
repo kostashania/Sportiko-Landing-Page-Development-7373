@@ -143,7 +143,7 @@ export const useSettings = () => {
       const { data, error } = await supabase
         .from('media_library')
         .select('*')
-        .where('bucket_name', 'eq', bucketName)
+        .eq('bucket_name', bucketName) // Fixed: Use .eq() instead of .where()
         .order('created_at', {ascending: false});
         
       if (error) throw error;
@@ -154,7 +154,7 @@ export const useSettings = () => {
     }
   }, [bucketName]);
 
-  // Update setting function with better error handling
+  // Update setting function with better error handling and no automatic reload
   const updateSetting = useCallback(async (category, key, value) => {
     try {
       console.log('Updating setting:', {category, key, value});
@@ -214,7 +214,7 @@ export const useSettings = () => {
         throw error;
       }
 
-      // Update local state
+      // Update local state immediately
       setSettings(prev => ({
         ...prev,
         [category]: {...(prev[category] || {}), [key]: value}
@@ -222,16 +222,14 @@ export const useSettings = () => {
       
       console.log('Setting updated successfully:', {category, key, value});
       
-      // Reload settings to ensure we have the latest data
-      setTimeout(() => loadSettings(), 500);
-      
+      // Don't reload all settings automatically - this was causing the infinite loop
       return {error: null};
     } catch (error) {
       console.error("Error updating setting:", error);
       setError(error.message);
       return {error};
     }
-  }, [loadSettings]);
+  }, []); // Removed loadSettings dependency to prevent infinite loops
 
   const updateSection = async (sectionId, updates) => {
     try {
