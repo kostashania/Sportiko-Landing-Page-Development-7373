@@ -6,7 +6,7 @@ import * as FiIcons from 'react-icons/fi';
 const { FiEdit3, FiSave, FiEye, FiLink, FiImage, FiUpload } = FiIcons;
 
 const HeroSettings = () => {
-  const { settings, updateSetting, uploadMedia } = useSettings();
+  const { settings, updateSetting, uploadMedia, loadSettings } = useSettings();
   const [heroData, setHeroData] = useState({
     title: settings?.content?.hero_title || '👉 Η Ψηφιακή Πλατφόρμα για τον Αθλητικό σας Σύλλογο',
     subtitle: settings?.content?.hero_subtitle || 'Διαχειρίσου έσοδα, έξοδα, εγκρίσεις, ταμείο και ρόλους με διαφάνεια και επαγγελματισμό – όλα από ένα σημείο.',
@@ -18,6 +18,11 @@ const HeroSettings = () => {
   });
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState('');
+
+  // Load settings when component mounts
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   useEffect(() => {
     if (settings?.content) {
@@ -34,22 +39,25 @@ const HeroSettings = () => {
   }, [settings]);
 
   const handleChange = (key, value) => {
-    setHeroData(prev => ({
-      ...prev,
-      [key]: value
-    }));
+    setHeroData(prev => ({ ...prev, [key]: value }));
   };
 
   const handleSave = async () => {
     setUploading(true);
     setSuccess('');
-    
     try {
+      console.log('Saving hero settings:', heroData);
+      
       // Save all hero settings
       const keys = Object.keys(heroData);
       for (const key of keys) {
-        await updateSetting('content', `hero_${key.toLowerCase()}`, heroData[key]);
+        const settingKey = `hero_${key.toLowerCase()}`;
+        console.log(`Saving ${settingKey}:`, heroData[key]);
+        await updateSetting('content', settingKey, heroData[key]);
       }
+      
+      // Force reload settings
+      await loadSettings();
       
       setSuccess('Οι ρυθμίσεις του Hero Section αποθηκεύτηκαν επιτυχώς!');
       setTimeout(() => setSuccess(''), 3000);
@@ -72,10 +80,19 @@ const HeroSettings = () => {
       if (error) throw error;
       
       handleChange('backgroundImage', url);
+      
+      // Save the background image URL to settings
+      await updateSetting('content', 'hero_background_image', url);
+      
+      // Force reload settings
+      await loadSettings();
+      
       setSuccess('Η εικόνα φόντου ενημερώθηκε επιτυχώς!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Upload error:', error);
+      setSuccess(`Σφάλμα: ${error.message}`);
+      setTimeout(() => setSuccess(''), 5000);
     } finally {
       setUploading(false);
     }
@@ -109,74 +126,74 @@ const HeroSettings = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Τίτλος
               </label>
-              <textarea
-                value={heroData.title}
+              <textarea 
+                value={heroData.title} 
                 onChange={(e) => handleChange('title', e.target.value)}
                 rows="2"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Εισάγετε τον τίτλο του hero section"
               />
             </div>
-
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Υπότιτλος
               </label>
-              <textarea
-                value={heroData.subtitle}
+              <textarea 
+                value={heroData.subtitle} 
                 onChange={(e) => handleChange('subtitle', e.target.value)}
                 rows="3"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Εισάγετε τον υπότιτλο του hero section"
               />
             </div>
-
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Κείμενο Κύριου Κουμπιού (CTA)
               </label>
-              <input
-                type="text"
-                value={heroData.ctaPrimary}
+              <input 
+                type="text" 
+                value={heroData.ctaPrimary} 
                 onChange={(e) => handleChange('ctaPrimary', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="π.χ. Ξεκινήστε Δωρεάν"
               />
             </div>
-
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 URL Κύριου Κουμπιού
               </label>
-              <input
-                type="text"
-                value={heroData.ctaPrimaryUrl}
+              <input 
+                type="text" 
+                value={heroData.ctaPrimaryUrl} 
                 onChange={(e) => handleChange('ctaPrimaryUrl', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="https://example.com/signup"
               />
             </div>
-
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Κείμενο Δευτερεύοντος Κουμπιού
               </label>
-              <input
-                type="text"
-                value={heroData.ctaSecondary}
+              <input 
+                type="text" 
+                value={heroData.ctaSecondary} 
                 onChange={(e) => handleChange('ctaSecondary', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="π.χ. Δείτε Παρουσίαση"
               />
             </div>
-
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 URL Δευτερεύοντος Κουμπιού
               </label>
-              <input
-                type="text"
-                value={heroData.ctaSecondaryUrl}
+              <input 
+                type="text" 
+                value={heroData.ctaSecondaryUrl} 
                 onChange={(e) => handleChange('ctaSecondaryUrl', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="https://example.com/demo"
@@ -184,7 +201,7 @@ const HeroSettings = () => {
             </div>
           </div>
         </div>
-
+        
         {/* Hero Background */}
         <div className="bg-gray-50 rounded-xl p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -197,15 +214,15 @@ const HeroSettings = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 URL Εικόνας Φόντου
               </label>
-              <input
-                type="text"
-                value={heroData.backgroundImage}
+              <input 
+                type="text" 
+                value={heroData.backgroundImage} 
                 onChange={(e) => handleChange('backgroundImage', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="https://example.com/background.jpg"
               />
             </div>
-
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 ή Ανεβάστε Νέα Εικόνα
@@ -218,7 +235,7 @@ const HeroSettings = () => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
             </div>
-
+            
             <div className="bg-white rounded-lg p-4">
               <h4 className="font-medium text-gray-900 mb-2">Προεπισκόπηση Φόντου</h4>
               <div className="aspect-video w-full rounded-lg overflow-hidden">
@@ -235,7 +252,7 @@ const HeroSettings = () => {
           </div>
         </div>
       </div>
-
+      
       {/* Preview */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center gap-3 mb-6">
@@ -244,7 +261,7 @@ const HeroSettings = () => {
         </div>
         
         <div 
-          className="relative rounded-xl overflow-hidden p-8 flex flex-col items-center justify-center"
+          className="relative rounded-xl overflow-hidden p-8 flex flex-col items-center justify-center" 
           style={{
             backgroundImage: `url(${heroData.backgroundImage})`,
             backgroundSize: 'cover',
@@ -267,10 +284,10 @@ const HeroSettings = () => {
           </div>
         </div>
       </div>
-
+      
       <div className="flex justify-end">
-        <button
-          onClick={handleSave}
+        <button 
+          onClick={handleSave} 
           disabled={uploading}
           className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
         >

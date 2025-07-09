@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import {useState, useEffect, useCallback} from 'react';
 import supabase from '../lib/supabase';
-import { resizeImage, validateImageFile } from '../utils/imageUtils';
+import {resizeImage, validateImageFile} from '../utils/imageUtils';
 
 export const useSettings = () => {
   const [settings, setSettings] = useState({});
@@ -13,16 +13,42 @@ export const useSettings = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Make sure storage bucket exists
+  useEffect(() => {
+    const createStorageBucket = async () => {
+      try {
+        // Check if bucket exists
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const mediaBucketExists = buckets?.some(bucket => bucket.name === 'media');
+        
+        if (!mediaBucketExists) {
+          // Create the bucket if it doesn't exist
+          await supabase.storage.createBucket('media', {
+            public: true,
+            allowedMimeTypes: ['image/*', 'video/*'],
+            fileSizeLimit: 10485760 // 10MB
+          });
+          
+          console.log('Created media storage bucket');
+        }
+      } catch (error) {
+        console.error('Error checking/creating storage bucket:', error);
+      }
+    };
+    
+    createStorageBucket();
+  }, []);
+
   const loadSettings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-
+      
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
-        .order('category', { ascending: true });
-
+        .order('category', {ascending: true});
+        
       if (error) {
         console.error('Settings load error:', error);
         throw error;
@@ -63,8 +89,8 @@ export const useSettings = () => {
       const { data, error } = await supabase
         .from('sections')
         .select('*')
-        .order('order_index', { ascending: true });
-
+        .order('order_index', {ascending: true});
+        
       if (error) throw error;
       setSections(data || []);
     } catch (error) {
@@ -78,8 +104,8 @@ export const useSettings = () => {
       const { data, error } = await supabase
         .from('features')
         .select('*')
-        .order('order_index', { ascending: true });
-
+        .order('order_index', {ascending: true});
+        
       if (error) throw error;
       setFeatures(data || []);
     } catch (error) {
@@ -93,8 +119,8 @@ export const useSettings = () => {
       const { data, error } = await supabase
         .from('benefits')
         .select('*')
-        .order('order_index', { ascending: true });
-
+        .order('order_index', {ascending: true});
+        
       if (error) throw error;
       setBenefits(data || []);
     } catch (error) {
@@ -108,8 +134,8 @@ export const useSettings = () => {
       const { data, error } = await supabase
         .from('demo_items')
         .select('*')
-        .order('order_index', { ascending: true });
-
+        .order('order_index', {ascending: true});
+        
       if (error) throw error;
       setDemoItems(data || []);
     } catch (error) {
@@ -123,8 +149,8 @@ export const useSettings = () => {
       const { data, error } = await supabase
         .from('contact_info')
         .select('*')
-        .order('order_index', { ascending: true });
-
+        .order('order_index', {ascending: true});
+        
       if (error) throw error;
       setContactInfo(data || []);
     } catch (error) {
@@ -138,8 +164,8 @@ export const useSettings = () => {
       const { data, error } = await supabase
         .from('media_library')
         .select('*')
-        .order('created_at', { ascending: false });
-
+        .order('created_at', {ascending: false});
+        
       if (error) throw error;
       setMediaLibrary(data || []);
     } catch (error) {
@@ -151,7 +177,7 @@ export const useSettings = () => {
   // Update setting function with better error handling
   const updateSetting = useCallback(async (category, key, value) => {
     try {
-      console.log('Updating setting:', { category, key, value });
+      console.log('Updating setting:', {category, key, value});
       
       // For entire category updates (like translations)
       if (key === null && typeof value === 'object') {
@@ -160,7 +186,7 @@ export const useSettings = () => {
           .from('site_settings')
           .delete()
           .eq('category', category);
-
+          
         if (deleteError) {
           console.error('Delete error:', deleteError);
           throw deleteError;
@@ -168,20 +194,12 @@ export const useSettings = () => {
 
         // Insert all new settings
         const insertPromises = Object.entries(value).map(([nestedKey, nestedValue]) => {
-          const insertValue = typeof nestedValue === 'object' 
-            ? JSON.stringify(nestedValue) 
-            : nestedValue;
-            
+          const insertValue = typeof nestedValue === 'object' ? JSON.stringify(nestedValue) : nestedValue;
           return supabase
             .from('site_settings')
-            .insert({
-              category,
-              key: nestedKey,
-              value: insertValue,
-              updated_at: new Date().toISOString()
-            });
+            .insert({category, key: nestedKey, value: insertValue, updated_at: new Date().toISOString()});
         });
-
+        
         const results = await Promise.all(insertPromises);
         
         // Check for errors in any of the inserts
@@ -191,9 +209,9 @@ export const useSettings = () => {
           throw errors[0].error;
         }
 
-        setSettings(prev => ({ ...prev, [category]: value }));
+        setSettings(prev => ({...prev, [category]: value}));
         console.log('Category updated successfully');
-        return { error: null };
+        return {error: null};
       }
 
       // For single setting updates
@@ -205,17 +223,12 @@ export const useSettings = () => {
       // Use upsert to handle both insert and update
       const { data, error } = await supabase
         .from('site_settings')
-        .upsert({
-          category,
-          key,
-          value: valueToStore,
-          updated_at: new Date().toISOString()
-        }, { 
-          onConflict: 'category,key',
-          ignoreDuplicates: false 
-        })
+        .upsert(
+          {category, key, value: valueToStore, updated_at: new Date().toISOString()},
+          {onConflict: 'category,key', ignoreDuplicates: false}
+        )
         .select();
-
+        
       if (error) {
         console.error('Upsert error:', error);
         throw error;
@@ -224,43 +237,41 @@ export const useSettings = () => {
       // Update local state
       setSettings(prev => ({
         ...prev,
-        [category]: {
-          ...(prev[category] || {}),
-          [key]: value
-        }
+        [category]: {...(prev[category] || {}), [key]: value}
       }));
-
-      console.log('Setting updated successfully:', { category, key, value });
-      return { error: null };
+      
+      console.log('Setting updated successfully:', {category, key, value});
+      
+      // Reload settings to ensure we have the latest data
+      setTimeout(() => loadSettings(), 500);
+      
+      return {error: null};
     } catch (error) {
       console.error("Error updating setting:", error);
       setError(error.message);
-      return { error };
+      return {error};
     }
-  }, []);
+  }, [loadSettings]);
 
   const updateSection = async (sectionId, updates) => {
     try {
       const { error } = await supabase
         .from('sections')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update({...updates, updated_at: new Date().toISOString()})
         .eq('id', sectionId);
-
+        
       if (error) throw error;
-
-      setSections(prev =>
-        prev.map(section =>
-          section.id === sectionId ? { ...section, ...updates } : section
+      
+      setSections(prev => 
+        prev.map(section => 
+          section.id === sectionId ? {...section, ...updates} : section
         )
       );
-
-      return { error: null };
+      
+      return {error: null};
     } catch (error) {
       setError(error.message);
-      return { error };
+      return {error};
     }
   };
 
@@ -268,23 +279,19 @@ export const useSettings = () => {
     try {
       const { data, error } = await supabase
         .from('features')
-        .insert([{
-          ...feature,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([{...feature, created_at: new Date().toISOString(), updated_at: new Date().toISOString()}])
         .select();
-
+        
       if (error) throw error;
-
-      setFeatures(prev =>
+      
+      setFeatures(prev => 
         [...prev, data[0]].sort((a, b) => a.order_index - b.order_index)
       );
-
-      return { data: data[0], error: null };
+      
+      return {data: data[0], error: null};
     } catch (error) {
       setError(error.message);
-      return { data: null, error };
+      return {data: null, error};
     }
   };
 
@@ -292,24 +299,21 @@ export const useSettings = () => {
     try {
       const { error } = await supabase
         .from('features')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update({...updates, updated_at: new Date().toISOString()})
         .eq('id', featureId);
-
+        
       if (error) throw error;
-
-      setFeatures(prev =>
-        prev.map(feature =>
-          feature.id === featureId ? { ...feature, ...updates } : feature
+      
+      setFeatures(prev => 
+        prev.map(feature => 
+          feature.id === featureId ? {...feature, ...updates} : feature
         ).sort((a, b) => a.order_index - b.order_index)
       );
-
-      return { error: null };
+      
+      return {error: null};
     } catch (error) {
       setError(error.message);
-      return { error };
+      return {error};
     }
   };
 
@@ -319,14 +323,17 @@ export const useSettings = () => {
         .from('features')
         .delete()
         .eq('id', featureId);
-
+        
       if (error) throw error;
-
-      setFeatures(prev => prev.filter(feature => feature.id !== featureId));
-      return { error: null };
+      
+      setFeatures(prev => 
+        prev.filter(feature => feature.id !== featureId)
+      );
+      
+      return {error: null};
     } catch (error) {
       setError(error.message);
-      return { error };
+      return {error};
     }
   };
 
@@ -334,23 +341,19 @@ export const useSettings = () => {
     try {
       const { data, error } = await supabase
         .from('benefits')
-        .insert([{
-          ...benefit,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([{...benefit, created_at: new Date().toISOString(), updated_at: new Date().toISOString()}])
         .select();
-
+        
       if (error) throw error;
-
-      setBenefits(prev =>
+      
+      setBenefits(prev => 
         [...prev, data[0]].sort((a, b) => a.order_index - b.order_index)
       );
-
-      return { data: data[0], error: null };
+      
+      return {data: data[0], error: null};
     } catch (error) {
       setError(error.message);
-      return { data: null, error };
+      return {data: null, error};
     }
   };
 
@@ -358,24 +361,21 @@ export const useSettings = () => {
     try {
       const { error } = await supabase
         .from('benefits')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update({...updates, updated_at: new Date().toISOString()})
         .eq('id', benefitId);
-
+        
       if (error) throw error;
-
-      setBenefits(prev =>
-        prev.map(benefit =>
-          benefit.id === benefitId ? { ...benefit, ...updates } : benefit
+      
+      setBenefits(prev => 
+        prev.map(benefit => 
+          benefit.id === benefitId ? {...benefit, ...updates} : benefit
         ).sort((a, b) => a.order_index - b.order_index)
       );
-
-      return { error: null };
+      
+      return {error: null};
     } catch (error) {
       setError(error.message);
-      return { error };
+      return {error};
     }
   };
 
@@ -385,14 +385,17 @@ export const useSettings = () => {
         .from('benefits')
         .delete()
         .eq('id', benefitId);
-
+        
       if (error) throw error;
-
-      setBenefits(prev => prev.filter(benefit => benefit.id !== benefitId));
-      return { error: null };
+      
+      setBenefits(prev => 
+        prev.filter(benefit => benefit.id !== benefitId)
+      );
+      
+      return {error: null};
     } catch (error) {
       setError(error.message);
-      return { error };
+      return {error};
     }
   };
 
@@ -400,23 +403,19 @@ export const useSettings = () => {
     try {
       const { data, error } = await supabase
         .from('demo_items')
-        .insert([{
-          ...item,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([{...item, created_at: new Date().toISOString(), updated_at: new Date().toISOString()}])
         .select();
-
+        
       if (error) throw error;
-
-      setDemoItems(prev =>
+      
+      setDemoItems(prev => 
         [...prev, data[0]].sort((a, b) => a.order_index - b.order_index)
       );
-
-      return { data: data[0], error: null };
+      
+      return {data: data[0], error: null};
     } catch (error) {
       setError(error.message);
-      return { data: null, error };
+      return {data: null, error};
     }
   };
 
@@ -424,24 +423,21 @@ export const useSettings = () => {
     try {
       const { error } = await supabase
         .from('demo_items')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update({...updates, updated_at: new Date().toISOString()})
         .eq('id', itemId);
-
+        
       if (error) throw error;
-
-      setDemoItems(prev =>
-        prev.map(item =>
-          item.id === itemId ? { ...item, ...updates } : item
+      
+      setDemoItems(prev => 
+        prev.map(item => 
+          item.id === itemId ? {...item, ...updates} : item
         ).sort((a, b) => a.order_index - b.order_index)
       );
-
-      return { error: null };
+      
+      return {error: null};
     } catch (error) {
       setError(error.message);
-      return { error };
+      return {error};
     }
   };
 
@@ -451,14 +447,17 @@ export const useSettings = () => {
         .from('demo_items')
         .delete()
         .eq('id', itemId);
-
+        
       if (error) throw error;
-
-      setDemoItems(prev => prev.filter(item => item.id !== itemId));
-      return { error: null };
+      
+      setDemoItems(prev => 
+        prev.filter(item => item.id !== itemId)
+      );
+      
+      return {error: null};
     } catch (error) {
       setError(error.message);
-      return { error };
+      return {error};
     }
   };
 
@@ -466,23 +465,19 @@ export const useSettings = () => {
     try {
       const { data, error } = await supabase
         .from('contact_info')
-        .insert([{
-          ...contact,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([{...contact, created_at: new Date().toISOString(), updated_at: new Date().toISOString()}])
         .select();
-
+        
       if (error) throw error;
-
-      setContactInfo(prev =>
+      
+      setContactInfo(prev => 
         [...prev, data[0]].sort((a, b) => a.order_index - b.order_index)
       );
-
-      return { data: data[0], error: null };
+      
+      return {data: data[0], error: null};
     } catch (error) {
       setError(error.message);
-      return { data: null, error };
+      return {data: null, error};
     }
   };
 
@@ -490,24 +485,21 @@ export const useSettings = () => {
     try {
       const { error } = await supabase
         .from('contact_info')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update({...updates, updated_at: new Date().toISOString()})
         .eq('id', contactId);
-
+        
       if (error) throw error;
-
-      setContactInfo(prev =>
-        prev.map(contact =>
-          contact.id === contactId ? { ...contact, ...updates } : contact
+      
+      setContactInfo(prev => 
+        prev.map(contact => 
+          contact.id === contactId ? {...contact, ...updates} : contact
         ).sort((a, b) => a.order_index - b.order_index)
       );
-
-      return { error: null };
+      
+      return {error: null};
     } catch (error) {
       setError(error.message);
-      return { error };
+      return {error};
     }
   };
 
@@ -517,14 +509,17 @@ export const useSettings = () => {
         .from('contact_info')
         .delete()
         .eq('id', contactId);
-
+        
       if (error) throw error;
-
-      setContactInfo(prev => prev.filter(contact => contact.id !== contactId));
-      return { error: null };
+      
+      setContactInfo(prev => 
+        prev.filter(contact => contact.id !== contactId)
+      );
+      
+      return {error: null};
     } catch (error) {
       setError(error.message);
-      return { error };
+      return {error};
     }
   };
 
@@ -558,20 +553,40 @@ export const useSettings = () => {
       const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `${category}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
+      // Check if bucket exists and create it if it doesn't
+      try {
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const mediaBucketExists = buckets?.some(bucket => bucket.name === 'media');
+        
+        if (!mediaBucketExists) {
+          await supabase.storage.createBucket('media', {
+            public: true,
+            allowedMimeTypes: ['image/*', 'video/*'],
+            fileSizeLimit: 10485760 // 10MB
+          });
+        }
+      } catch (bucketError) {
+        console.warn('Bucket check/create error:', bucketError);
+      }
+
       // Upload to Supabase Storage
+      console.log('Uploading file to storage:', fileName);
+      
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('media')
-        .upload(fileName, fileToUpload, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
+        .upload(fileName, fileToUpload, {cacheControl: '3600', upsert: false});
+        
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('media')
         .getPublicUrl(fileName);
+
+      console.log('File uploaded successfully, public URL:', publicUrl);
 
       // Save to media library
       const { error: insertError } = await supabase
@@ -585,17 +600,20 @@ export const useSettings = () => {
           size_bytes: fileToUpload.size,
           alt_text: `${category} image`
         }]);
-
-      if (insertError) throw insertError;
+        
+      if (insertError) {
+        console.error('Media library insert error:', insertError);
+        throw insertError;
+      }
 
       // Reload media library
       await loadMediaLibrary();
-
-      return { url: publicUrl, error: null };
+      
+      return {url: publicUrl, error: null};
     } catch (error) {
       console.error('Upload error:', error);
       setError(error.message);
-      return { url: null, error: error.message };
+      return {url: null, error: error.message};
     }
   };
 
