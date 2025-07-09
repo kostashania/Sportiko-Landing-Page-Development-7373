@@ -7,15 +7,15 @@ import { useSettings } from '../../hooks/useSettings';
 
 const FeaturesSection = () => {
   const { currentLanguage } = useLanguage();
-  const { features } = useSettings();
+  const { features, settings, loading } = useSettings();
   const [isLoaded, setIsLoaded] = useState(false);
-  
+
   useEffect(() => {
-    if (features.length > 0) {
+    if (!loading && features.length > 0) {
       setIsLoaded(true);
     }
-  }, [features]);
-  
+  }, [features, loading]);
+
   // Default features if not loaded from database
   const defaultFeatures = [
     {
@@ -62,7 +62,48 @@ const FeaturesSection = () => {
 
   // Use features from database if available, otherwise use defaults
   const displayFeatures = isLoaded ? features : defaultFeatures;
-  
+
+  // Get section title from settings
+  const getSectionTitle = () => {
+    if (!loading && settings?.content?.features_section_title) {
+      return settings.content.features_section_title;
+    }
+    return currentLanguage.code === 'el' 
+      ? '🚀 Οι Εφαρμογές του Sportiko'
+      : '🚀 Sportiko Apps';
+  };
+
+  if (loading) {
+    return (
+      <section id="features" className="py-20 px-4 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-300 rounded mb-4 max-w-md mx-auto"></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+            {[1, 2].map((i) => (
+              <div key={i} className="bg-white rounded-xl shadow-lg p-8">
+                <div className="animate-pulse">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 bg-gray-300 rounded-lg"></div>
+                    <div className="h-6 bg-gray-300 rounded flex-1"></div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-300 rounded"></div>
+                    <div className="h-4 bg-gray-300 rounded"></div>
+                    <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="features" className="py-20 px-4 bg-gray-50">
       <div className="max-w-6xl mx-auto">
@@ -74,7 +115,7 @@ const FeaturesSection = () => {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            {currentLanguage.code === 'el' ? '🚀 Οι Εφαρμογές του Sportiko' : '🚀 Sportiko Apps'}
+            {getSectionTitle()}
           </h2>
         </motion.div>
 
@@ -92,18 +133,13 @@ const FeaturesSection = () => {
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-3 bg-blue-100 rounded-lg">
-                    <SafeIcon
-                      icon={FiIcons[feature.icon] || FiIcons.FiZap}
-                      className="w-6 h-6 text-blue-600"
-                    />
+                    <SafeIcon icon={FiIcons[feature.icon] || FiIcons.FiZap} className="w-6 h-6 text-blue-600" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900">{feature.title}</h3>
                 </div>
-                
                 <p className="text-gray-600 mb-4 whitespace-pre-line">
                   {feature.description}
                 </p>
-                
                 {feature.link_url && (
                   <a
                     href={feature.link_url}

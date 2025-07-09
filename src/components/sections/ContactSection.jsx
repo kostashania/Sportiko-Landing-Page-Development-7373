@@ -9,12 +9,12 @@ const { FiMail, FiPhone, FiMapPin } = FiIcons;
 
 const ContactSection = () => {
   const { currentLanguage } = useLanguage();
-  const { contactInfo } = useSettings();
+  const { contactInfo, settings, loading } = useSettings();
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapUrl, setMapUrl] = useState('https://maps.google.com/?q=Χανιά,Ελλάδα&output=embed');
-  
+
   useEffect(() => {
-    if (contactInfo.length > 0) {
+    if (!loading && contactInfo.length > 0) {
       setIsLoaded(true);
       
       // Find map URL in contact info
@@ -28,8 +28,8 @@ const ContactSection = () => {
         setMapUrl(url);
       }
     }
-  }, [contactInfo]);
-  
+  }, [contactInfo, loading]);
+
   // Default contact info if not loaded from database
   const defaultContactInfo = [
     {
@@ -98,31 +98,80 @@ const ContactSection = () => {
   // Get icon for contact type
   const getIconForType = (type) => {
     switch (type) {
-      case 'email':
-        return FiMail;
-      case 'phone':
-        return FiPhone;
-      case 'address':
-        return FiMapPin;
-      default:
-        return FiMail;
+      case 'email': return FiMail;
+      case 'phone': return FiPhone;
+      case 'address': return FiMapPin;
+      default: return FiMail;
     }
   };
 
   // Get label for contact type
   const getLabelForType = (type, isEnglish = false) => {
     switch (type) {
-      case 'email':
-        return isEnglish ? 'Email' : 'Email';
-      case 'phone':
-        return isEnglish ? 'Phone' : 'Τηλέφωνο';
-      case 'address':
-        return isEnglish ? 'Location' : 'Τοποθεσία';
-      default:
-        return isEnglish ? 'Contact' : 'Επικοινωνία';
+      case 'email': return isEnglish ? 'Email' : 'Email';
+      case 'phone': return isEnglish ? 'Phone' : 'Τηλέφωνο';
+      case 'address': return isEnglish ? 'Location' : 'Τοποθεσία';
+      default: return isEnglish ? 'Contact' : 'Επικοινωνία';
     }
   };
-  
+
+  // Get section title from settings
+  const getSectionTitle = () => {
+    if (!loading && settings?.content?.contact_section_title) {
+      return settings.content.contact_section_title;
+    }
+    return currentLanguage.code === 'el' 
+      ? '📬 Επικοινωνία'
+      : '📬 Contact';
+  };
+
+  // Get section subtitle from settings
+  const getSectionSubtitle = () => {
+    if (!loading && settings?.content?.contact_section_subtitle) {
+      return settings.content.contact_section_subtitle;
+    }
+    return currentLanguage.code === 'el' 
+      ? 'Έχετε απορίες ή θέλετε παρουσίαση; Επικοινωνήστε μαζί μας:'
+      : 'Have questions or want a presentation? Contact us:';
+  };
+
+  if (loading) {
+    return (
+      <section id="contact" className="py-20 px-4 bg-gray-900 text-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-700 rounded mb-8 max-w-md mx-auto"></div>
+              <div className="h-6 bg-gray-700 rounded mb-12 max-w-lg mx-auto"></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="lg:col-span-2">
+              <div className="grid grid-cols-1 gap-8">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-gray-800 rounded-xl p-6">
+                    <div className="animate-pulse">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gray-600 rounded-full"></div>
+                        <div className="flex-1">
+                          <div className="h-5 bg-gray-600 rounded mb-2"></div>
+                          <div className="h-4 bg-gray-600 rounded w-3/4"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="lg:col-span-3 bg-gray-800 rounded-xl overflow-hidden">
+              <div className="aspect-video w-full h-full bg-gray-700"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="contact" className="py-20 px-4 bg-gray-900 text-white">
       <div className="max-w-6xl mx-auto">
@@ -134,15 +183,13 @@ const ContactSection = () => {
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-8">
-            {currentLanguage.code === 'el' ? '📬 Επικοινωνία' : '📬 Contact'}
+            {getSectionTitle()}
           </h2>
           <p className="text-xl mb-12 text-gray-300">
-            {currentLanguage.code === 'el'
-              ? 'Έχετε απορίες ή θέλετε παρουσίαση; Επικοινωνήστε μαζί μας:'
-              : 'Have questions or want a presentation? Contact us:'}
+            {getSectionSubtitle()}
           </p>
         </motion.div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Contact Info */}
           <div className="lg:col-span-2">
@@ -162,7 +209,7 @@ const ContactSection = () => {
                       <div className="p-3 bg-blue-600 rounded-full">
                         <SafeIcon 
                           icon={FiIcons[contact.icon] || getIconForType(contact.type)} 
-                          className="w-6 h-6 text-white"
+                          className="w-6 h-6 text-white" 
                         />
                       </div>
                       <div>
@@ -187,7 +234,7 @@ const ContactSection = () => {
                 ))}
             </div>
           </div>
-          
+
           {/* Map */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
