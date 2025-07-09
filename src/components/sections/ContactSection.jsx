@@ -9,14 +9,19 @@ const { FiMail, FiPhone, FiMapPin } = FiIcons;
 
 const ContactSection = () => {
   const { currentLanguage } = useLanguage();
-  const { contactInfo, settings, loading } = useSettings();
+  const { contactInfo, loadContactInfo } = useSettings();
   const [isLoaded, setIsLoaded] = useState(false);
   const [mapUrl, setMapUrl] = useState('https://maps.google.com/?q=Χανιά,Ελλάδα&output=embed');
 
   useEffect(() => {
-    if (!loading && contactInfo.length > 0) {
+    console.log('ContactSection: Loading contact info...');
+    loadContactInfo();
+  }, [loadContactInfo]);
+
+  useEffect(() => {
+    console.log('ContactSection: Contact info changed:', contactInfo);
+    if (contactInfo.length > 0) {
       setIsLoaded(true);
-      
       // Find map URL in contact info
       const addressContact = contactInfo.find(item => item.type === 'address');
       if (addressContact && addressContact.link) {
@@ -28,7 +33,7 @@ const ContactSection = () => {
         setMapUrl(url);
       }
     }
-  }, [contactInfo, loading]);
+  }, [contactInfo]);
 
   // Default contact info if not loaded from database
   const defaultContactInfo = [
@@ -94,6 +99,7 @@ const ContactSection = () => {
 
   // Use contact info from database if available, otherwise use defaults
   const displayContactInfo = isLoaded ? contactInfo : defaultContactInfo;
+  const currentContactInfo = currentLanguage.code === 'el' ? displayContactInfo : defaultContactInfoEn;
 
   // Get icon for contact type
   const getIconForType = (type) => {
@@ -115,62 +121,8 @@ const ContactSection = () => {
     }
   };
 
-  // Get section title from settings
-  const getSectionTitle = () => {
-    if (!loading && settings?.content?.contact_section_title) {
-      return settings.content.contact_section_title;
-    }
-    return currentLanguage.code === 'el' 
-      ? '📬 Επικοινωνία'
-      : '📬 Contact';
-  };
-
-  // Get section subtitle from settings
-  const getSectionSubtitle = () => {
-    if (!loading && settings?.content?.contact_section_subtitle) {
-      return settings.content.contact_section_subtitle;
-    }
-    return currentLanguage.code === 'el' 
-      ? 'Έχετε απορίες ή θέλετε παρουσίαση; Επικοινωνήστε μαζί μας:'
-      : 'Have questions or want a presentation? Contact us:';
-  };
-
-  if (loading) {
-    return (
-      <section id="contact" className="py-20 px-4 bg-gray-900 text-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-700 rounded mb-8 max-w-md mx-auto"></div>
-              <div className="h-6 bg-gray-700 rounded mb-12 max-w-lg mx-auto"></div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            <div className="lg:col-span-2">
-              <div className="grid grid-cols-1 gap-8">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-gray-800 rounded-xl p-6">
-                    <div className="animate-pulse">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gray-600 rounded-full"></div>
-                        <div className="flex-1">
-                          <div className="h-5 bg-gray-600 rounded mb-2"></div>
-                          <div className="h-4 bg-gray-600 rounded w-3/4"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="lg:col-span-3 bg-gray-800 rounded-xl overflow-hidden">
-              <div className="aspect-video w-full h-full bg-gray-700"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  console.log('ContactSection: Displaying contact info:', currentContactInfo);
+  console.log('ContactSection: Map URL:', mapUrl);
 
   return (
     <section id="contact" className="py-20 px-4 bg-gray-900 text-white">
@@ -183,10 +135,13 @@ const ContactSection = () => {
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-8">
-            {getSectionTitle()}
+            {currentLanguage.code === 'el' ? '📬 Επικοινωνία' : '📬 Contact'}
           </h2>
           <p className="text-xl mb-12 text-gray-300">
-            {getSectionSubtitle()}
+            {currentLanguage.code === 'el' 
+              ? 'Έχετε απορίες ή θέλετε παρουσίαση; Επικοινωνήστε μαζί μας:' 
+              : 'Have questions or want a presentation? Contact us:'
+            }
           </p>
         </motion.div>
 
@@ -194,7 +149,7 @@ const ContactSection = () => {
           {/* Contact Info */}
           <div className="lg:col-span-2">
             <div className="grid grid-cols-1 gap-8">
-              {(currentLanguage.code === 'el' ? displayContactInfo : defaultContactInfoEn)
+              {currentContactInfo
                 .filter(contact => contact.is_active)
                 .map((contact, index) => (
                   <motion.div

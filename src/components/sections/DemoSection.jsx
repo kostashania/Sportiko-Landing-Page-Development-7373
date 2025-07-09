@@ -9,20 +9,30 @@ const { FiMonitor, FiSmartphone, FiTablet, FiPlay } = FiIcons;
 
 const DemoSection = () => {
   const { currentLanguage } = useLanguage();
-  const { demoItems, settings, loading } = useSettings();
+  const { demoItems, settings, loadDemoItems, loadSettings } = useSettings();
   const [isLoaded, setIsLoaded] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
 
   useEffect(() => {
-    if (!loading && demoItems.length > 0) {
+    console.log('DemoSection: Loading demo items and settings...');
+    loadDemoItems();
+    loadSettings();
+  }, [loadDemoItems, loadSettings]);
+
+  useEffect(() => {
+    console.log('DemoSection: Demo items changed:', demoItems);
+    if (demoItems.length > 0) {
       setIsLoaded(true);
     }
+  }, [demoItems]);
 
+  useEffect(() => {
+    console.log('DemoSection: Settings changed:', settings);
     // Get video URL from settings
-    if (!loading && settings?.content?.demo_video_url) {
+    if (settings?.content?.demo_video_url) {
       setVideoUrl(settings.content.demo_video_url);
     }
-  }, [demoItems, settings, loading]);
+  }, [settings]);
 
   // Default items if not loaded from database
   const defaultItems = [
@@ -82,43 +92,10 @@ const DemoSection = () => {
 
   // Use items from database if available, otherwise use defaults
   const displayItems = isLoaded ? demoItems : defaultItems;
+  const currentItems = currentLanguage.code === 'el' ? displayItems : defaultItemsEn;
 
-  // Get section title from settings
-  const getSectionTitle = () => {
-    if (!loading && settings?.content?.demo_section_title) {
-      return settings.content.demo_section_title;
-    }
-    return currentLanguage.code === 'el' 
-      ? '📹 Δείτε Πώς Λειτουργεί'
-      : '📹 Watch How It Works';
-  };
-
-  if (loading) {
-    return (
-      <section id="demo" className="py-20 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="animate-pulse">
-              <div className="h-8 bg-gray-300 rounded mb-8 max-w-md mx-auto"></div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-gray-50 rounded-xl overflow-hidden shadow-lg">
-                    <div className="w-full h-48 bg-gray-300"></div>
-                    <div className="p-6">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-6 h-6 bg-gray-300 rounded"></div>
-                        <div className="h-5 bg-gray-300 rounded flex-1"></div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  console.log('DemoSection: Displaying items:', currentItems);
+  console.log('DemoSection: Video URL:', videoUrl);
 
   return (
     <section id="demo" className="py-20 px-4 bg-white">
@@ -131,10 +108,11 @@ const DemoSection = () => {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">
-            {getSectionTitle()}
+            {currentLanguage.code === 'el' ? '📹 Δείτε Πώς Λειτουργεί' : '📹 Watch How It Works'}
           </h2>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {(currentLanguage.code === 'el' ? displayItems : defaultItemsEn)
+            {currentItems
               .filter(item => item.is_active)
               .map((item, index) => (
                 <motion.div
@@ -162,7 +140,10 @@ const DemoSection = () => {
                   </a>
                   <div className="p-6">
                     <div className="flex items-center gap-3 mb-3">
-                      <SafeIcon icon={FiIcons[item.icon] || FiMonitor} className="w-6 h-6 text-blue-600" />
+                      <SafeIcon 
+                        icon={FiIcons[item.icon] || FiMonitor} 
+                        className="w-6 h-6 text-blue-600" 
+                      />
                       <h3 className="text-lg font-semibold text-gray-900">{item.title}</h3>
                     </div>
                     {item.description && (
@@ -202,14 +183,11 @@ const DemoSection = () => {
           className="bg-gradient-to-r from-blue-600 to-green-600 rounded-2xl p-8 text-center text-white"
         >
           <h3 className="text-2xl md:text-3xl font-bold mb-4">
-            {currentLanguage.code === 'el' 
-              ? '✅ Γιατί να ξεκινήσετε σήμερα'
-              : '✅ Why Start Today'
-            }
+            {currentLanguage.code === 'el' ? '✅ Γιατί να ξεκινήσετε σήμερα' : '✅ Why Start Today'}
           </h3>
           <p className="text-xl mb-8">
             {currentLanguage.code === 'el' 
-              ? 'Ξεκινήστε σήμερα με το Sportiko. Οργανώστε τον σύλλογό σας με τις εφαρμογές Fin & Academy.'
+              ? 'Ξεκινήστε σήμερα με το Sportiko. Οργανώστε τον σύλλογό σας με τις εφαρμογές Fin & Academy.' 
               : 'Start today with Sportiko. Organize your club with the Fin & Academy apps.'
             }
           </p>

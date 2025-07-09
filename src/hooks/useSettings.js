@@ -20,6 +20,7 @@ export const useSettings = () => {
 
   const loadSettings = useCallback(async () => {
     try {
+      console.log('useSettings: Loading settings from database...');
       setLoading(true);
       setError(null);
       
@@ -29,9 +30,11 @@ export const useSettings = () => {
         .order('category', {ascending: true});
         
       if (error) {
-        console.error('Settings load error:', error);
+        console.error('useSettings: Settings load error:', error);
         throw error;
       }
+
+      console.log('useSettings: Raw settings data:', data);
 
       const settingsObj = {};
       data?.forEach(setting => {
@@ -53,10 +56,10 @@ export const useSettings = () => {
         }
       });
 
+      console.log('useSettings: Processed settings object:', settingsObj);
       setSettings(settingsObj);
-      console.log('Settings loaded:', settingsObj);
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      console.error('useSettings: Failed to load settings:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -65,75 +68,85 @@ export const useSettings = () => {
 
   const loadSections = useCallback(async () => {
     try {
+      console.log('useSettings: Loading sections...');
       const { data, error } = await supabase
         .from('sections')
         .select('*')
         .order('order_index', {ascending: true});
         
       if (error) throw error;
+      console.log('useSettings: Sections loaded:', data);
       setSections(data || []);
     } catch (error) {
-      console.warn('Failed to load sections:', error);
+      console.warn('useSettings: Failed to load sections:', error);
       setSections([]);
     }
   }, []);
 
   const loadFeatures = useCallback(async () => {
     try {
+      console.log('useSettings: Loading features...');
       const { data, error } = await supabase
         .from('features')
         .select('*')
         .order('order_index', {ascending: true});
         
       if (error) throw error;
+      console.log('useSettings: Features loaded:', data);
       setFeatures(data || []);
     } catch (error) {
-      console.warn('Failed to load features:', error);
+      console.warn('useSettings: Failed to load features:', error);
       setFeatures([]);
     }
   }, []);
 
   const loadBenefits = useCallback(async () => {
     try {
+      console.log('useSettings: Loading benefits...');
       const { data, error } = await supabase
         .from('benefits')
         .select('*')
         .order('order_index', {ascending: true});
         
       if (error) throw error;
+      console.log('useSettings: Benefits loaded:', data);
       setBenefits(data || []);
     } catch (error) {
-      console.warn('Failed to load benefits:', error);
+      console.warn('useSettings: Failed to load benefits:', error);
       setBenefits([]);
     }
   }, []);
 
   const loadDemoItems = useCallback(async () => {
     try {
+      console.log('useSettings: Loading demo items...');
       const { data, error } = await supabase
         .from('demo_items')
         .select('*')
         .order('order_index', {ascending: true});
         
       if (error) throw error;
+      console.log('useSettings: Demo items loaded:', data);
       setDemoItems(data || []);
     } catch (error) {
-      console.warn('Failed to load demo items:', error);
+      console.warn('useSettings: Failed to load demo items:', error);
       setDemoItems([]);
     }
   }, []);
 
   const loadContactInfo = useCallback(async () => {
     try {
+      console.log('useSettings: Loading contact info...');
       const { data, error } = await supabase
         .from('contact_info')
         .select('*')
         .order('order_index', {ascending: true});
         
       if (error) throw error;
+      console.log('useSettings: Contact info loaded:', data);
       setContactInfo(data || []);
     } catch (error) {
-      console.warn('Failed to load contact info:', error);
+      console.warn('useSettings: Failed to load contact info:', error);
       setContactInfo([]);
     }
   }, []);
@@ -141,7 +154,7 @@ export const useSettings = () => {
   // Updated to use Supabase Storage API instead of media_library table
   const loadMediaLibrary = useCallback(async () => {
     try {
-      console.log('Loading media library from Supabase Storage...');
+      console.log('useSettings: Loading media library from Supabase Storage...');
       
       // Load files from different categories
       const categories = ['general', 'hero', 'logo', 'demo', 'features'];
@@ -152,7 +165,7 @@ export const useSettings = () => {
           const categoryFiles = await listFiles(category);
           allFiles.push(...categoryFiles);
         } catch (error) {
-          console.warn(`Failed to load files from category ${category}:`, error);
+          console.warn(`useSettings: Failed to load files from category ${category}:`, error);
         }
       }
       
@@ -161,13 +174,13 @@ export const useSettings = () => {
         const rootFiles = await listFiles('');
         allFiles.push(...rootFiles.filter(file => !file.filename.includes('/')));
       } catch (error) {
-        console.warn('Failed to load files from root directory:', error);
+        console.warn('useSettings: Failed to load files from root directory:', error);
       }
       
+      console.log('useSettings: Media library loaded:', allFiles.length, 'files');
       setMediaLibrary(allFiles);
-      console.log('Media library loaded:', allFiles.length, 'files');
     } catch (error) {
-      console.warn('Failed to load media library:', error);
+      console.warn('useSettings: Failed to load media library:', error);
       setMediaLibrary([]);
     }
   }, []);
@@ -175,7 +188,7 @@ export const useSettings = () => {
   // Update setting function with better error handling and no automatic reload
   const updateSetting = useCallback(async (category, key, value) => {
     try {
-      console.log('Updating setting:', {category, key, value});
+      console.log('useSettings: Updating setting:', {category, key, value});
       
       // For entire category updates (like translations)
       if (key === null && typeof value === 'object') {
@@ -186,7 +199,7 @@ export const useSettings = () => {
           .eq('category', category);
           
         if (deleteError) {
-          console.error('Delete error:', deleteError);
+          console.error('useSettings: Delete error:', deleteError);
           throw deleteError;
         }
 
@@ -203,12 +216,12 @@ export const useSettings = () => {
         // Check for errors in any of the inserts
         const errors = results.filter(result => result.error);
         if (errors.length > 0) {
-          console.error('Insert errors:', errors);
+          console.error('useSettings: Insert errors:', errors);
           throw errors[0].error;
         }
 
         setSettings(prev => ({...prev, [category]: value}));
-        console.log('Category updated successfully');
+        console.log('useSettings: Category updated successfully');
         return {error: null};
       }
 
@@ -228,7 +241,7 @@ export const useSettings = () => {
         .select();
         
       if (error) {
-        console.error('Upsert error:', error);
+        console.error('useSettings: Upsert error:', error);
         throw error;
       }
 
@@ -238,16 +251,15 @@ export const useSettings = () => {
         [category]: {...(prev[category] || {}), [key]: value}
       }));
       
-      console.log('Setting updated successfully:', {category, key, value});
+      console.log('useSettings: Setting updated successfully:', {category, key, value});
       
-      // Don't reload all settings automatically - this was causing the infinite loop
       return {error: null};
     } catch (error) {
-      console.error("Error updating setting:", error);
+      console.error("useSettings: Error updating setting:", error);
       setError(error.message);
       return {error};
     }
-  }, []); // Removed loadSettings dependency to prevent infinite loops
+  }, []);
 
   const updateSection = async (sectionId, updates) => {
     try {
@@ -527,7 +539,7 @@ export const useSettings = () => {
       }
 
       if (storageError) {
-        console.warn('Storage initialization had issues, but continuing with upload:', storageError);
+        console.warn('useSettings: Storage initialization had issues, but continuing with upload:', storageError);
       }
 
       // Validate file
@@ -558,19 +570,19 @@ export const useSettings = () => {
       const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `${category}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-      console.log('Uploading file to storage:', fileName);
+      console.log('useSettings: Uploading file to storage:', fileName);
       
       // Use the utility function to upload
       const { publicUrl } = await uploadFile(fileName, fileToUpload);
 
-      console.log('File uploaded successfully, public URL:', publicUrl);
+      console.log('useSettings: File uploaded successfully, public URL:', publicUrl);
 
       // Reload media library to show the new file
       await loadMediaLibrary();
       
       return {url: publicUrl, error: null};
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('useSettings: Upload error:', error);
       setError(error.message);
       return {url: null, error: error.message};
     }

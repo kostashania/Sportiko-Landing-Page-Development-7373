@@ -11,24 +11,24 @@ import Footer from './sections/Footer';
 const LandingPage = () => {
   const { loadSettings, loadFeatures, loadDemoItems, loadContactInfo } = useSettings();
 
-  // Load all necessary data when the component mounts
+  // Load all data when the landing page mounts
   useEffect(() => {
-    const initializeData = async () => {
+    console.log('LandingPage: Loading all data...');
+    const loadAllData = async () => {
       try {
-        console.log('Loading landing page data...');
         await Promise.all([
           loadSettings(),
           loadFeatures(),
           loadDemoItems(),
           loadContactInfo()
         ]);
-        console.log('Landing page data loaded successfully');
+        console.log('LandingPage: All data loaded successfully');
       } catch (error) {
-        console.error('Error loading landing page data:', error);
+        console.error('LandingPage: Error loading data:', error);
       }
     };
 
-    initializeData();
+    loadAllData();
   }, [loadSettings, loadFeatures, loadDemoItems, loadContactInfo]);
 
   return (
