@@ -24,15 +24,16 @@ export const useStorageBucket = () => {
       if (initializationRef.current) {
         return;
       }
-
+      
       initializationRef.current = true;
 
       try {
         const appConfig = getCurrentAppConfig();
         setConfig(appConfig);
-
-        console.log('Initializing storage bucket for app:', appConfig);
-
+        
+        console.log('Checking storage bucket for app:', appConfig);
+        
+        // Only check if bucket exists, never try to create it
         const result = await ensureStorageBucket(appConfig);
         
         if (mountedRef.current) {
@@ -41,16 +42,16 @@ export const useStorageBucket = () => {
             setError(null);
             console.log('Storage bucket ready:', appConfig.bucketName);
           } else {
-            throw new Error('Failed to ensure storage bucket');
+            throw new Error('Storage bucket is not available');
           }
         }
       } catch (err) {
-        console.error('Storage bucket initialization error:', err);
+        console.error('Storage bucket check error:', err);
         
         if (mountedRef.current) {
           setError(err);
-          // Don't block the app for storage issues
-          // Set ready to true anyway, uploads will handle their own errors
+          // Set ready to true anyway for manually created buckets
+          // The app should still function even if we can't verify the bucket
           setIsReady(true);
         }
       }

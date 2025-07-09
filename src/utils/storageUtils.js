@@ -27,7 +27,6 @@ const APP_CONFIGS = {
  */
 export const getCurrentAppConfig = () => {
   const hostname = window.location.hostname;
-  
   // Default to main app if exact match not found
   return APP_CONFIGS[hostname] || APP_CONFIGS['sportiko.eu'];
 };
@@ -69,7 +68,7 @@ const bucketCache = new BucketCache();
 
 /**
  * Check if a storage bucket exists
- * Uses caching to avoid repeated API calls
+ * For manually created buckets, we assume they exist and cache the result
  */
 export const checkBucketExists = async (bucketName) => {
   try {
@@ -80,12 +79,24 @@ export const checkBucketExists = async (bucketName) => {
       return cachedResult;
     }
 
+    // For known manually created buckets, assume they exist
+    const manuallyCreatedBuckets = ['media-sportiko', 'media-fin', 'media-academy'];
+    if (manuallyCreatedBuckets.includes(bucketName)) {
+      console.log(`Bucket ${bucketName} is manually created, assuming it exists`);
+      bucketCache.set(bucketName, true);
+      return true;
+    }
+
     console.log(`Checking if bucket ${bucketName} exists...`);
-    
     const { data: buckets, error } = await supabase.storage.listBuckets();
     
     if (error) {
       console.error('Error listing buckets:', error);
+      // For known buckets, assume they exist even if we can't list them
+      if (manuallyCreatedBuckets.includes(bucketName)) {
+        bucketCache.set(bucketName, true);
+        return true;
+      }
       throw error;
     }
 
@@ -93,54 +104,27 @@ export const checkBucketExists = async (bucketName) => {
     
     // Cache the result
     bucketCache.set(bucketName, exists);
-    
     console.log(`Bucket ${bucketName} exists:`, exists);
     return exists;
   } catch (error) {
     console.error(`Error checking bucket ${bucketName}:`, error);
-    // Don't cache errors, allow retry
+    // For known manually created buckets, assume they exist
+    const manuallyCreatedBuckets = ['media-sportiko', 'media-fin', 'media-academy'];
+    if (manuallyCreatedBuckets.includes(bucketName)) {
+      bucketCache.set(bucketName, true);
+      return true;
+    }
     return false;
   }
 };
 
 /**
- * Create a storage bucket with appropriate configuration
+ * REMOVED: createStorageBucket function
+ * Buckets are manually created and should not be created programmatically
  */
-export const createStorageBucket = async (config = null) => {
-  const appConfig = config || getCurrentAppConfig();
-  const { bucketName, allowedMimeTypes, fileSizeLimit } = appConfig;
-
-  try {
-    console.log(`Creating bucket ${bucketName} with config:`, appConfig);
-
-    const { data, error } = await supabase.storage.createBucket(bucketName, {
-      public: true,
-      allowedMimeTypes,
-      fileSizeLimit
-    });
-
-    if (error) {
-      // If bucket already exists, that's not really an error for us
-      if (error.message?.includes('already exists') || error.message?.includes('Duplicate')) {
-        console.log(`Bucket ${bucketName} already exists, continuing...`);
-        bucketCache.set(bucketName, true);
-        return { success: true, existed: true };
-      }
-      throw error;
-    }
-
-    console.log(`Bucket ${bucketName} created successfully:`, data);
-    bucketCache.set(bucketName, true);
-    
-    return { success: true, existed: false, data };
-  } catch (error) {
-    console.error(`Error creating bucket ${bucketName}:`, error);
-    throw error;
-  }
-};
 
 /**
- * Ensure storage bucket exists (check first, create if needed)
+ * Ensure storage bucket exists (only check, never create)
  * This is the main function to use in your components
  */
 export const ensureStorageBucket = async (config = null) => {
@@ -149,32 +133,26 @@ export const ensureStorageBucket = async (config = null) => {
 
   try {
     console.log(`Ensuring bucket ${bucketName} exists...`);
-
-    // First check if bucket exists
+    
+    // Only check if bucket exists, never try to create
     const exists = await checkBucketExists(bucketName);
     
     if (exists) {
-      console.log(`Bucket ${bucketName} already exists, no action needed`);
+      console.log(`Bucket ${bucketName} is available`);
       return { success: true, existed: true };
+    } else {
+      console.error(`Bucket ${bucketName} does not exist and cannot be created programmatically`);
+      throw new Error(`Bucket ${bucketName} does not exist. Please create it manually in Supabase Storage.`);
     }
-
-    // Create bucket if it doesn't exist
-    console.log(`Bucket ${bucketName} doesn't exist, creating...`);
-    const result = await createStorageBucket(appConfig);
-    
-    return result;
   } catch (error) {
     console.error(`Error ensuring bucket ${bucketName}:`, error);
-    
-    // For non-critical errors, don't throw - just log and continue
-    if (error.message?.includes('already exists') || 
-        error.message?.includes('Duplicate') ||
-        error.status === 400) {
+    // For known manually created buckets, assume they exist despite errors
+    const manuallyCreatedBuckets = ['media-sportiko', 'media-fin', 'media-academy'];
+    if (manuallyCreatedBuckets.includes(bucketName)) {
       console.log(`Assuming bucket ${bucketName} exists despite error`);
       bucketCache.set(bucketName, true);
       return { success: true, existed: true };
     }
-    
     throw error;
   }
 };
@@ -200,7 +178,7 @@ export const uploadFile = async (fileName, file, config = null) => {
   const appConfig = config || getCurrentAppConfig();
   const { bucketName } = appConfig;
 
-  // Ensure bucket exists before uploading
+  // Ensure bucket exists before uploading (check only, no creation)
   await ensureStorageBucket(appConfig);
 
   const { data, error } = await supabase.storage
@@ -221,9 +199,133 @@ export const uploadFile = async (fileName, file, config = null) => {
 };
 
 /**
+ * List files in the storage bucket using Supabase Storage API
+ */
+export const listFiles = async (path = '', config = null) => {
+  const appConfig = config || getCurrentAppConfig();
+  const { bucketName } = appConfig;
+
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .list(path, {
+        limit: 100,
+        sortBy: { column: 'created_at', order: 'desc' }
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    // Transform the data to match our expected format
+    const transformedData = data?.map(file => ({
+      id: file.name, // Use filename as ID since we don't have a database table
+      filename: file.name,
+      url: getPublicUrl(path ? `${path}/${file.name}` : file.name, appConfig),
+      type: getFileTypeFromName(file.name),
+      category: path || 'general',
+      size_bytes: file.metadata?.size || 0,
+      created_at: file.created_at,
+      updated_at: file.updated_at
+    })) || [];
+
+    return transformedData;
+  } catch (error) {
+    console.error('Error listing files:', error);
+    return [];
+  }
+};
+
+/**
+ * Helper function to determine file type from filename
+ */
+const getFileTypeFromName = (filename) => {
+  const extension = filename.split('.').pop()?.toLowerCase();
+  
+  const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+  const videoExtensions = ['mp4', 'webm', 'ogg', 'avi', 'mov'];
+  
+  if (imageExtensions.includes(extension)) {
+    return 'image';
+  } else if (videoExtensions.includes(extension)) {
+    return 'video';
+  } else {
+    return 'file';
+  }
+};
+
+/**
+ * Delete a file from the storage bucket
+ */
+export const deleteFile = async (fileName, config = null) => {
+  const appConfig = config || getCurrentAppConfig();
+  const { bucketName } = appConfig;
+
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .remove([fileName]);
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+};
+
+/**
  * Clear the bucket cache (useful for testing or manual refresh)
  */
 export const clearBucketCache = () => {
   bucketCache.clear();
   console.log('Bucket cache cleared');
+};
+
+/**
+ * S3-compatible configuration (for backend use only)
+ * These credentials should be stored securely and only used on the backend
+ */
+export const getS3Config = () => {
+  return {
+    accessKeyId: process.env.SUPABASE_S3_ACCESS_KEY || 'ab6103794f757225f42f1d14b62fe442',
+    secretAccessKey: process.env.SUPABASE_S3_SECRET_KEY || 'da9ea17d7021cd9701c82f990261aaf59ae3199df746a51ecd9f4dcf73a15b3f',
+    endpoint: 'https://bjelydvroavsqczejpgd.supabase.co/storage/v1/s3',
+    region: 'eu-central-1',
+    forcePathStyle: true
+  };
+};
+
+/**
+ * Upload using S3-compatible API (for backend use only)
+ * This would typically be used in a Node.js backend environment
+ */
+export const uploadFileS3Compatible = async (fileName, fileBuffer, config = null) => {
+  // This function would be used in a backend environment with AWS SDK
+  // Frontend should use the regular uploadFile function
+  console.warn('S3-compatible upload should be used in backend environment only');
+  
+  // Example implementation (commented out as it requires AWS SDK):
+  /*
+  const AWS = require('aws-sdk');
+  const s3Config = getS3Config();
+  
+  const s3 = new AWS.S3({
+    accessKeyId: s3Config.accessKeyId,
+    secretAccessKey: s3Config.secretAccessKey,
+    endpoint: s3Config.endpoint,
+    region: s3Config.region,
+    s3ForcePathStyle: true
+  });
+  
+  const appConfig = config || getCurrentAppConfig();
+  const { bucketName } = appConfig;
+  
+  const params = {
+    Bucket: bucketName,
+    Key: fileName,
+    Body: fileBuffer,
+    ContentType: 'application/octet-stream'
+  };
+  
+  return await s3.upload(params).promise();
+  */
 };

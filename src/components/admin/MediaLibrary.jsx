@@ -1,23 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSettings } from '../../hooks/useSettings';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
+import { deleteFile } from '../../utils/storageUtils';
 
-const { FiImage, FiVideo, FiUpload, FiTrash2, FiEye, FiCopy, FiFolder } = FiIcons;
+const { FiImage, FiVideo, FiUpload, FiTrash2, FiEye, FiCopy, FiFolder, FiRefreshCw } = FiIcons;
 
 const MediaLibrary = () => {
   const { mediaLibrary, uploadMedia, loadMediaLibrary } = useSettings();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const categories = [
     { value: 'all', label: 'Όλα' },
     { value: 'hero', label: 'Hero' },
+    { value: 'logo', label: 'Logo' },
     { value: 'features', label: 'Features' },
     { value: 'demo', label: 'Demo' },
     { value: 'general', label: 'Γενικά' }
   ];
+
+  useEffect(() => {
+    // Load media library on component mount
+    loadMediaLibrary();
+  }, [loadMediaLibrary]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -25,8 +33,12 @@ const MediaLibrary = () => {
 
     setUploading(true);
     try {
-      await uploadMedia(file, selectedCategory === 'all' ? 'general' : selectedCategory);
+      const category = selectedCategory === 'all' ? 'general' : selectedCategory;
+      await uploadMedia(file, category);
       event.target.value = '';
+      
+      // Reload media library to show the new file
+      await loadMediaLibrary();
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
@@ -39,13 +51,41 @@ const MediaLibrary = () => {
     alert('URL αντιγράφηκε στο clipboard!');
   };
 
-  const filteredMedia = mediaLibrary.filter(media => 
+  const handleDeleteFile = async (filename) => {
+    if (!window.confirm('Είστε βέβαιοι ότι θέλετε να διαγράψετε αυτό το αρχείο;')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await deleteFile(filename);
+      await loadMediaLibrary(); // Reload to update the list
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Σφάλμα κατά τη διαγραφή του αρχείου');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      await loadMediaLibrary();
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredMedia = mediaLibrary.filter(media =>
     selectedCategory === 'all' || media.category === selectedCategory
   );
 
   const getFileIcon = (type) => {
-    if (type.startsWith('image/')) return FiImage;
-    if (type.startsWith('video/')) return FiVideo;
+    if (type === 'image') return FiImage;
+    if (type === 'video') return FiVideo;
     return FiFolder;
   };
 
@@ -60,10 +100,22 @@ const MediaLibrary = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Βιβλιοθήκη Μέσων</h2>
-        <p className="text-gray-600 mb-8">
-          Διαχειριστείτε τις εικόνες, βίντεο και άλλα αρχεία της ιστοσελίδας σας.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Βιβλιοθήκη Μέσων</h2>
+            <p className="text-gray-600">
+              Διαχειριστείτε τις εικόνες, βίντεο και άλλα αρχεία της ιστοσελίδας σας.
+            </p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+          >
+            <SafeIcon icon={FiRefreshCw} className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            Ανανέωση
+          </button>
+        </div>
       </div>
 
       {/* Upload Section */}
@@ -135,32 +187,33 @@ const MediaLibrary = () => {
           <div key={media.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="aspect-square bg-gray-100 flex items-center justify-center">
               {media.type === 'image' ? (
-                <img 
-                  src={media.url} 
-                  alt={media.alt_text || media.filename}
+                <img
+                  src={media.url}
+                  alt={media.filename}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/400x400?text=Image+Error';
+                  }}
                 />
               ) : (
                 <SafeIcon icon={getFileIcon(media.type)} className="w-16 h-16 text-gray-400" />
               )}
             </div>
-            
+
             <div className="p-4">
               <h4 className="font-semibold text-gray-900 mb-2 truncate">
                 {media.filename}
               </h4>
-              
+
               <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex items-center justify-between">
                   <span>Τύπος:</span>
                   <span className="font-medium">{media.type}</span>
                 </div>
-                
                 <div className="flex items-center justify-between">
                   <span>Κατηγορία:</span>
                   <span className="font-medium">{media.category}</span>
                 </div>
-                
                 {media.size_bytes && (
                   <div className="flex items-center justify-between">
                     <span>Μέγεθος:</span>
@@ -168,7 +221,7 @@ const MediaLibrary = () => {
                   </div>
                 )}
               </div>
-              
+
               <div className="flex gap-2 mt-4">
                 <button
                   onClick={() => setSelectedFile(media)}
@@ -176,12 +229,18 @@ const MediaLibrary = () => {
                 >
                   <SafeIcon icon={FiEye} className="w-4 h-4 mx-auto" />
                 </button>
-                
                 <button
                   onClick={() => handleCopyUrl(media.url)}
                   className="flex-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm"
                 >
                   <SafeIcon icon={FiCopy} className="w-4 h-4 mx-auto" />
+                </button>
+                <button
+                  onClick={() => handleDeleteFile(media.filename)}
+                  disabled={loading}
+                  className="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm disabled:opacity-50"
+                >
+                  <SafeIcon icon={FiTrash2} className="w-4 h-4 mx-auto" />
                 </button>
               </div>
             </div>
@@ -193,10 +252,9 @@ const MediaLibrary = () => {
         <div className="text-center py-12">
           <SafeIcon icon={FiImage} className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">
-            {selectedCategory === 'all' 
+            {selectedCategory === 'all'
               ? 'Δεν υπάρχουν αρχεία στη βιβλιοθήκη μέσων.'
-              : `Δεν υπάρχουν αρχεία στην κατηγορία "${categories.find(c => c.value === selectedCategory)?.label}".`
-            }
+              : `Δεν υπάρχουν αρχεία στην κατηγορία "${categories.find(c => c.value === selectedCategory)?.label}".`}
           </p>
         </div>
       )}
@@ -217,12 +275,12 @@ const MediaLibrary = () => {
                   ✕
                 </button>
               </div>
-              
+
               <div className="mb-4">
                 {selectedFile.type === 'image' ? (
-                  <img 
-                    src={selectedFile.url} 
-                    alt={selectedFile.alt_text || selectedFile.filename}
+                  <img
+                    src={selectedFile.url}
+                    alt={selectedFile.filename}
                     className="max-w-full h-auto rounded-lg"
                   />
                 ) : (
@@ -232,15 +290,15 @@ const MediaLibrary = () => {
                   </div>
                 )}
               </div>
-              
+
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">URL:</span>
-                    <input 
-                      type="text" 
-                      value={selectedFile.url} 
-                      readOnly 
+                    <input
+                      type="text"
+                      value={selectedFile.url}
+                      readOnly
                       className="w-full mt-1 px-3 py-2 bg-white border border-gray-300 rounded text-xs"
                     />
                   </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import supabase from '../lib/supabase';
 import { resizeImage, validateImageFile } from '../utils/imageUtils';
-import { uploadFile, getCurrentAppConfig } from '../utils/storageUtils';
+import { uploadFile, getCurrentAppConfig, listFiles } from '../utils/storageUtils';
 import { useStorageBucket } from './useStorageBucket';
 
 export const useSettings = () => {
@@ -138,21 +138,39 @@ export const useSettings = () => {
     }
   }, []);
 
+  // Updated to use Supabase Storage API instead of media_library table
   const loadMediaLibrary = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('media_library')
-        .select('*')
-        .eq('bucket_name', bucketName) // Fixed: Use .eq() instead of .where()
-        .order('created_at', {ascending: false});
-        
-      if (error) throw error;
-      setMediaLibrary(data || []);
+      console.log('Loading media library from Supabase Storage...');
+      
+      // Load files from different categories
+      const categories = ['general', 'hero', 'logo', 'demo', 'features'];
+      const allFiles = [];
+      
+      for (const category of categories) {
+        try {
+          const categoryFiles = await listFiles(category);
+          allFiles.push(...categoryFiles);
+        } catch (error) {
+          console.warn(`Failed to load files from category ${category}:`, error);
+        }
+      }
+      
+      // Also load files from root directory
+      try {
+        const rootFiles = await listFiles('');
+        allFiles.push(...rootFiles.filter(file => !file.filename.includes('/')));
+      } catch (error) {
+        console.warn('Failed to load files from root directory:', error);
+      }
+      
+      setMediaLibrary(allFiles);
+      console.log('Media library loaded:', allFiles.length, 'files');
     } catch (error) {
       console.warn('Failed to load media library:', error);
       setMediaLibrary([]);
     }
-  }, [bucketName]);
+  }, []);
 
   // Update setting function with better error handling and no automatic reload
   const updateSetting = useCallback(async (category, key, value) => {
@@ -547,26 +565,7 @@ export const useSettings = () => {
 
       console.log('File uploaded successfully, public URL:', publicUrl);
 
-      // Save to media library
-      const { error: insertError } = await supabase
-        .from('media_library')
-        .insert([{
-          filename: fileToUpload.name,
-          url: publicUrl,
-          type: fileToUpload.type.startsWith('image/') ? 'image' : 
-                fileToUpload.type.startsWith('video/') ? 'video' : 'file',
-          category,
-          bucket_name: bucketName,
-          size_bytes: fileToUpload.size,
-          alt_text: `${category} image`
-        }]);
-        
-      if (insertError) {
-        console.error('Media library insert error:', insertError);
-        throw insertError;
-      }
-
-      // Reload media library
+      // Reload media library to show the new file
       await loadMediaLibrary();
       
       return {url: publicUrl, error: null};
