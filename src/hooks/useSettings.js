@@ -1,6 +1,8 @@
-import {useState, useEffect, useCallback} from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import supabase from '../lib/supabase';
-import {resizeImage, validateImageFile} from '../utils/imageUtils';
+import { resizeImage, validateImageFile } from '../utils/imageUtils';
+import { uploadFile, getCurrentAppConfig } from '../utils/storageUtils';
+import { useStorageBucket } from './useStorageBucket';
 
 export const useSettings = () => {
   const [settings, setSettings] = useState({});
@@ -13,31 +15,8 @@ export const useSettings = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Make sure storage bucket exists
-  useEffect(() => {
-    const createStorageBucket = async () => {
-      try {
-        // Check if bucket exists
-        const { data: buckets } = await supabase.storage.listBuckets();
-        const mediaBucketExists = buckets?.some(bucket => bucket.name === 'media');
-        
-        if (!mediaBucketExists) {
-          // Create the bucket if it doesn't exist
-          await supabase.storage.createBucket('media', {
-            public: true,
-            allowedMimeTypes: ['image/*', 'video/*'],
-            fileSizeLimit: 10485760 // 10MB
-          });
-          
-          console.log('Created media storage bucket');
-        }
-      } catch (error) {
-        console.error('Error checking/creating storage bucket:', error);
-      }
-    };
-    
-    createStorageBucket();
-  }, []);
+  // Use the storage bucket hook
+  const { isReady: storageReady, error: storageError, bucketName } = useStorageBucket();
 
   const loadSettings = useCallback(async () => {
     try {
@@ -164,6 +143,7 @@ export const useSettings = () => {
       const { data, error } = await supabase
         .from('media_library')
         .select('*')
+        .where('bucket_name', 'eq', bucketName)
         .order('created_at', {ascending: false});
         
       if (error) throw error;
@@ -172,7 +152,7 @@ export const useSettings = () => {
       console.warn('Failed to load media library:', error);
       setMediaLibrary([]);
     }
-  }, []);
+  }, [bucketName]);
 
   // Update setting function with better error handling
   const updateSetting = useCallback(async (category, key, value) => {
@@ -525,6 +505,15 @@ export const useSettings = () => {
 
   const uploadMedia = async (file, category = 'general') => {
     try {
+      // Check if storage is ready
+      if (!storageReady) {
+        throw new Error('Storage not ready. Please try again in a moment.');
+      }
+
+      if (storageError) {
+        console.warn('Storage initialization had issues, but continuing with upload:', storageError);
+      }
+
       // Validate file
       const validation = validateImageFile(file);
       if (!validation.valid) {
@@ -553,38 +542,10 @@ export const useSettings = () => {
       const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `${category}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-      // Check if bucket exists and create it if it doesn't
-      try {
-        const { data: buckets } = await supabase.storage.listBuckets();
-        const mediaBucketExists = buckets?.some(bucket => bucket.name === 'media');
-        
-        if (!mediaBucketExists) {
-          await supabase.storage.createBucket('media', {
-            public: true,
-            allowedMimeTypes: ['image/*', 'video/*'],
-            fileSizeLimit: 10485760 // 10MB
-          });
-        }
-      } catch (bucketError) {
-        console.warn('Bucket check/create error:', bucketError);
-      }
-
-      // Upload to Supabase Storage
       console.log('Uploading file to storage:', fileName);
       
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('media')
-        .upload(fileName, fileToUpload, {cacheControl: '3600', upsert: false});
-        
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('media')
-        .getPublicUrl(fileName);
+      // Use the utility function to upload
+      const { publicUrl } = await uploadFile(fileName, fileToUpload);
 
       console.log('File uploaded successfully, public URL:', publicUrl);
 
@@ -597,6 +558,7 @@ export const useSettings = () => {
           type: fileToUpload.type.startsWith('image/') ? 'image' : 
                 fileToUpload.type.startsWith('video/') ? 'video' : 'file',
           category,
+          bucket_name: bucketName,
           size_bytes: fileToUpload.size,
           alt_text: `${category} image`
         }]);
@@ -626,7 +588,9 @@ export const useSettings = () => {
     contactInfo,
     mediaLibrary,
     loading,
-    error,
+    error: error || storageError,
+    storageReady,
+    bucketName,
     updateSetting,
     updateSection,
     createFeature,

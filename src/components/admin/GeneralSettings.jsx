@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
+import StorageStatus from './StorageStatus';
 
 const { FiGlobe, FiServer, FiLink, FiShield } = FiIcons;
 
@@ -34,6 +35,7 @@ const GeneralSettings = ({ settings, updateSetting }) => {
             <SafeIcon icon={FiGlobe} className="w-6 h-6 text-blue-600" />
             <h3 className="text-lg font-semibold text-gray-900">Πληροφορίες Ιστοσελίδας</h3>
           </div>
+          
           <div className="space-y-4">
             <div>
               <label htmlFor="site-name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -49,6 +51,7 @@ const GeneralSettings = ({ settings, updateSetting }) => {
                 autoComplete="organization"
               />
             </div>
+            
             <div>
               <label htmlFor="app-url" className="block text-sm font-medium text-gray-700 mb-2">
                 URL Εφαρμογής
@@ -72,6 +75,7 @@ const GeneralSettings = ({ settings, updateSetting }) => {
             <SafeIcon icon={FiServer} className="w-6 h-6 text-green-600" />
             <h3 className="text-lg font-semibold text-gray-900">Ρυθμίσεις Βάσης Δεδομένων</h3>
           </div>
+          
           <div className="space-y-4">
             <div>
               <label htmlFor="project-id" className="block text-sm font-medium text-gray-700 mb-2">
@@ -87,6 +91,7 @@ const GeneralSettings = ({ settings, updateSetting }) => {
                 autoComplete="off"
               />
             </div>
+            
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-2">
                 <SafeIcon icon={FiLink} className="w-5 h-5 text-blue-600" />
@@ -99,12 +104,18 @@ const GeneralSettings = ({ settings, updateSetting }) => {
           </div>
         </div>
 
+        {/* Storage Status */}
+        <div className="lg:col-span-2">
+          <StorageStatus />
+        </div>
+
         {/* Google reCAPTCHA */}
         <div className="bg-gray-50 rounded-xl p-6 lg:col-span-2">
           <div className="flex items-center gap-3 mb-4">
             <SafeIcon icon={FiShield} className="w-6 h-6 text-red-600" />
             <h3 className="text-lg font-semibold text-gray-900">Google reCAPTCHA</h3>
           </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="recaptcha-site-key" className="block text-sm font-medium text-gray-700 mb-2">
@@ -120,6 +131,7 @@ const GeneralSettings = ({ settings, updateSetting }) => {
                 autoComplete="off"
               />
             </div>
+            
             <div>
               <label htmlFor="recaptcha-secret-key" className="block text-sm font-medium text-gray-700 mb-2">
                 Secret Key (Μυστικό Κλειδί)
@@ -135,12 +147,13 @@ const GeneralSettings = ({ settings, updateSetting }) => {
               />
             </div>
           </div>
+          
           <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
             <p className="text-sm text-yellow-800">
               <strong>Οδηγίες:</strong> Για να ενεργοποιήσετε το Google reCAPTCHA, επισκεφτείτε το{' '}
-              <a
-                href="https://www.google.com/recaptcha/admin"
-                target="_blank"
+              <a 
+                href="https://www.google.com/recaptcha/admin" 
+                target="_blank" 
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline"
               >
@@ -162,6 +175,7 @@ const GeneralSettings = ({ settings, updateSetting }) => {
             <p className="text-sm font-medium text-gray-900">Βάση Δεδομένων</p>
             <p className="text-xs text-green-600">Συνδεδεμένη</p>
           </div>
+          
           <div className="text-center">
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
               <SafeIcon icon={FiGlobe} className="w-6 h-6 text-green-600" />
@@ -169,6 +183,7 @@ const GeneralSettings = ({ settings, updateSetting }) => {
             <p className="text-sm font-medium text-gray-900">Ιστοσελίδα</p>
             <p className="text-xs text-green-600">Ενεργή</p>
           </div>
+          
           <div className="text-center">
             <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-2">
               <SafeIcon icon={FiShield} className="w-6 h-6 text-yellow-600" />
