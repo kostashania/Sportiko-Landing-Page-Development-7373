@@ -9,7 +9,7 @@ const GeneralSettings = ({ settings, updateSetting }) => {
   const [localSettings, setLocalSettings] = useState({
     siteName: settings?.general?.site_name || 'Sportiko.eu',
     projectId: settings?.general?.project_id || 'bjelydvroavsqczejpgd',
-    appUrl: settings?.general?.app_url || 'https://spiffy-nougat-80a628.netlify.app',
+    appUrl: settings?.general?.app_url || 'https://sportiko.eu/',
     googleRecaptchaSiteKey: settings?.general?.google_recaptcha_site_key || '',
     googleRecaptchaSecretKey: settings?.general?.google_recaptcha_secret_key || ''
   });
@@ -62,7 +62,7 @@ const GeneralSettings = ({ settings, updateSetting }) => {
                 value={localSettings.appUrl}
                 onChange={(e) => handleChange('appUrl', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://spiffy-nougat-80a628.netlify.app"
+                placeholder="https://sportiko.eu/"
                 autoComplete="url"
               />
             </div>
