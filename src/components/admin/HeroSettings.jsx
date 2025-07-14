@@ -48,23 +48,30 @@ const HeroSettings = () => {
   const handleSave = async () => {
     setUploading(true);
     setSuccess('');
-    
+
     try {
-      console.log('Saving hero settings:', heroData);
-      
-      // Save all hero settings one by one
+      const keyMap = {
+        title: 'hero_title',
+        subtitle: 'hero_subtitle',
+        ctaPrimary: 'hero_cta_primary',
+        ctaSecondary: 'hero_cta_secondary',
+        ctaPrimaryUrl: 'hero_cta_primary_url',
+        ctaSecondaryUrl: 'hero_cta_secondary_url',
+        backgroundImage: 'hero_background_image'
+      };
+
       const savePromises = Object.keys(heroData).map(async (key) => {
-        const settingKey = `hero_${key.toLowerCase()}`;
+        const settingKey = keyMap[key];
+        if (!settingKey) return;
         console.log(`Saving ${settingKey}:`, heroData[key]);
         return await updateSetting('content', settingKey, heroData[key]);
       });
 
       const results = await Promise.all(savePromises);
-      
-      // Check for any errors
-      const errors = results.filter(result => result.error);
+
+      const errors = results.filter(result => result?.error);
       if (errors.length > 0) {
-        throw new Error('Some settings failed to save');
+        throw new Error('Κάποια πεδία δεν αποθηκεύτηκαν σωστά');
       }
 
       setSuccess('Οι ρυθμίσεις του Hero Section αποθηκεύτηκαν επιτυχώς!');
@@ -77,6 +84,7 @@ const HeroSettings = () => {
       setUploading(false);
     }
   };
+
 
   const handleBackgroundUpload = async (event) => {
     const file = event.target.files[0];
