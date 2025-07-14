@@ -12,8 +12,8 @@ const HeroSettings = () => {
     subtitle: settings?.content?.hero_subtitle || 'Διαχειρίσου έσοδα, έξοδα, εγκρίσεις, ταμείο και ρόλους με διαφάνεια και επαγγελματισμό – όλα από ένα σημείο.',
     ctaPrimary: settings?.content?.hero_cta_primary || '✅ Ξεκινήστε Δωρεάν',
     ctaSecondary: settings?.content?.hero_cta_secondary || '💼 Δείτε Παρουσίαση',
-    ctaPrimaryUrl: settings?.content?.hero_cta_primary_url || 'https://spiffy-nougat-80a628.netlify.app',
-    ctaSecondaryUrl: settings?.content?.hero_cta_secondary_url || '#demo',
+    ctaPrimaryUrl: settings?.content?.hero_cta_primary_url || 'https://fin.sportiko.eu/',
+    ctaSecondaryUrl: settings?.content?.hero_cta_secondary_url || 'https://fin.sportiko.eu/',
     backgroundImage: settings?.content?.hero_background_image || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b',
   });
   const [uploading, setUploading] = useState(false);
